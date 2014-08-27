@@ -3,6 +3,8 @@
 
 #include "geometry.hpp"
 
+#include <stdint.h>
+
 namespace finch
 {
   struct program_state
