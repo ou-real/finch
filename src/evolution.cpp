@@ -55,10 +55,14 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generat
   
   for(uint32_t i = 0; i < max_generations; ++i) {
     cout << "generation " << i << "... ";
+    cout.flush();
     
     const steady_clock::time_point start_time = high_resolution_clock::now();
     
     eval.evaluate(maze, pop, initial_state, 200);
+    
+    cout << "...";
+    cout.flush();
     
     vector<double> fitnesses = _fitness->map_all(pop);
     
