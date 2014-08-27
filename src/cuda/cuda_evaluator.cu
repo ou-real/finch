@@ -56,7 +56,7 @@ void cuda_evaluator::evaluate(const matrix2<uint16_t> &maze, population &generat
   cudaEventCreate(&start_event);
   cudaEventCreate(&end_event);
   cudaEventRecord(start_event, 0);
-  program_interpreter<<<1, 1>>>(device_maze, maze.rows(), maze.columns(),
+  program_interpreter<<<blocks, threads>>>(device_maze, maze.rows(), maze.columns(),
     device_offsets, device_programs, initial_state, op_lim, device_res);
   cudaEventRecord(end_event, 0);
   
