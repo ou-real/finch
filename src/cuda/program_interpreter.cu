@@ -1,6 +1,8 @@
 #include <finch/geometry.hpp>
 #include <finch/program_state.hpp>
 
+#include <stdio.h>
+
 using namespace finch;
 
 __device__ bool occurence_in_cone_east(uint16_t *const maze, const uint16_t rows, const uint16_t cols,
