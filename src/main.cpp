@@ -2,6 +2,7 @@
 #include <finch/builder.hpp>
 #include <finch/csv.hpp>
 #include <finch/novelty_fitness_mapper.hpp>
+#include <finch/cuda/info.hpp>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -29,15 +30,7 @@ int main(int argc, char *argv[])
   
   file.close();
   
-  int gpu = 0;
-  cudaDeviceProp gpuProp;
-  cudaGetDevice(&gpu);
-  cudaGetDeviceProperties(&gpuProp, gpu);
-  cout << "GPU Information:" << endl;
-  cout << "\tName: " << gpuProp.name << "(" << gpuProp.major << "." << gpuProp.minor << ")" << endl;
-  cout << "\tMemory: " << gpuProp.totalGlobalMem << endl;
-  cout << "\tMax Threads/Block: " << gpuProp.maxThreadsPerBlock << endl;
-  cout << "\tECC Enabled: " << gpuProp.eccEnabled << endl;
+  print_cuda_info();
   
   builder pop_builder;
   
