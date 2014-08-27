@@ -19,22 +19,26 @@ if(debug)
   add_definitions(-g)
 endif()
 
-find_package(Qt5Widgets REQUIRED)
+option(gui "Build with GUI tools" OFF)
 
 include_directories("${CMAKE_SOURCE_DIR}/include")
 file(GLOB SOURCES "${CMAKE_SOURCE_DIR}/src/*")
 file(GLOB CUDA_SOURCES "${CMAKE_SOURCE_DIR}/src/cuda/*")
-file(GLOB UI_SOURCES "${CMAKE_SOURCE_DIR}/src/ui/*")
 file(GLOB MAZE_GEN_SOURCES "${CMAKE_SOURCE_DIR}/src/maze_gen/*")
-file(GLOB MAZE_VIEW_SOURCES "${CMAKE_SOURCE_DIR}/src/maze_view/*")
 file(GLOB MAZE_RUN_SOURCES "${CMAKE_SOURCE_DIR}/src/maze_run/*")
 
-add_library("${CMAKE_PROJECT_NAME}-ui" SHARED ${UI_SOURCES})
-qt5_use_modules("${CMAKE_PROJECT_NAME}-ui" Widgets)
-
 add_executable("${CMAKE_PROJECT_NAME}-maze_gen" ${MAZE_GEN_SOURCES})
-add_executable("${CMAKE_PROJECT_NAME}-maze_view" ${MAZE_VIEW_SOURCES})
 cuda_add_executable("${CMAKE_PROJECT_NAME}" ${SOURCES} ${CUDA_SOURCES})
-target_link_libraries("${CMAKE_PROJECT_NAME}" "${CMAKE_PROJECT_NAME}-ui")
-target_link_libraries("${CMAKE_PROJECT_NAME}-maze_view" "${CMAKE_PROJECT_NAME}-ui")
+
+if(gui)
+  find_package(Qt5Widgets REQUIRED)
+  file(GLOB UI_SOURCES "${CMAKE_SOURCE_DIR}/src/ui/*")
+  file(GLOB MAZE_VIEW_SOURCES "${CMAKE_SOURCE_DIR}/src/maze_view/*")
+  
+  add_library("${CMAKE_PROJECT_NAME}-ui" SHARED ${UI_SOURCES})
+  qt5_use_modules("${CMAKE_PROJECT_NAME}-ui" Widgets)
+  add_executable("${CMAKE_PROJECT_NAME}-maze_view" ${MAZE_VIEW_SOURCES})
+  target_link_libraries("${CMAKE_PROJECT_NAME}" "${CMAKE_PROJECT_NAME}-ui")
+  target_link_libraries("${CMAKE_PROJECT_NAME}-maze_view" "${CMAKE_PROJECT_NAME}-ui")
+endif()
 
