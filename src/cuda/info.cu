@@ -1,4 +1,4 @@
-#include <cuda/info.hpp>
+#include <finch/cuda/info.hpp>
 #include <iostream>
 
 using namespace std;
