@@ -48,6 +48,10 @@ void cuda_evaluator::evaluate(const matrix2<uint16_t> &maze, population &generat
   program_state *device_res = 0;
   cudaMalloc(&device_res, res_size);
   
+  const size_t total_size = programs_size + offsets_size + res_size;
+  
+  cout << "Allocating " << total_size / (1024 * 1024) << " MiB on GPU" << endl;
+  
   // FIXME: Rounding error
   uint32_t threads = 10;
   uint32_t blocks = ceil((float)generation.size() / threads);
