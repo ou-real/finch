@@ -3,7 +3,12 @@
 #include <finch/builder.hpp>
 #include <finch/csv.hpp>
 #include <finch/program_node_types.hpp>
+
+#ifdef USE_CUDA
+#include <finch/cuda/cuda_evaluator.hpp>
+#else
 #include <finch/cpu/cpu_evaluator.hpp>
+#endif
 
 #include <iostream>
 #include <chrono>
@@ -46,7 +51,11 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generat
   
   cout << "Evolving for " << max_generations << " generations." << endl;
   
+#ifdef USE_CUDA
+  cuda_evaluator eval;
+#else
   cpu_evaluator eval;
+#endif
   
   const csv::column_handle gen_handle = out->append_column("Generation");
   const csv::column_handle pop_size_handle = out->append_column("Population Size");
