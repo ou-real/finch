@@ -1,3 +1,5 @@
+#ifdef USE_CUDA
+
 #include <finch/cuda/cuda_evaluator.hpp>
 
 #include "program_interpreter.hpp"
@@ -94,3 +96,5 @@ void cuda_evaluator::evaluate(const matrix2<uint16_t> &maze, population &generat
   cudaFree(device_programs);
   cudaFree(device_maze);
 }
+
+#endif

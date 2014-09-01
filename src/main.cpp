@@ -2,18 +2,23 @@
 #include <finch/builder.hpp>
 #include <finch/csv.hpp>
 #include <finch/novelty_fitness_mapper.hpp>
-#include <finch/cuda/info.hpp>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
 #include <ctime>
 
+#ifdef USE_CUDA
+#include <finch/cuda/info.hpp>
+#endif
+
 using namespace finch;
 using namespace std;
 
 int main(int argc, char *argv[])
 {
+  cin.get();
+  
   if(argc < 2) {
     cerr << argv[0] << " [maze]" << endl;
     return 1;
@@ -30,12 +35,13 @@ int main(int argc, char *argv[])
   
   file.close();
   
+#ifdef USE_CUDA
   print_cuda_info();
+#endif
   
   builder pop_builder;
   
   novelty_fitness_mapper novelty;
-  
   
   stringstream evolve_log_name;
   time_t t = time(nullptr);

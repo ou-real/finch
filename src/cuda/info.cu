@@ -1,3 +1,5 @@
+#ifdef USE_CUDA
+
 #include <finch/cuda/info.hpp>
 #include <iostream>
 
@@ -15,3 +17,5 @@ void print_cuda_info()
   cout << "\tMax Threads/Block: " << gpuProp.maxThreadsPerBlock << endl;
   cout << "\tECC Enabled: " << gpuProp.ECCEnabled << endl;
 }
+
+#endif

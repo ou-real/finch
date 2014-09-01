@@ -2,7 +2,12 @@ project(finch)
 
 cmake_minimum_required(VERSION 2.8.12)
 
-find_package(CUDA REQUIRED)
+option(cuda "Use CUDA" OFF)
+
+if(cuda)
+  find_package(CUDA REQUIRED)
+  add_definitions(-DUSE_CUDA)
+endif()
 set(CUDA_NVCC_FLAGS "-arch=sm_30")
 
 if(APPLE)
@@ -24,11 +29,16 @@ option(gui "Build with GUI tools" OFF)
 include_directories("${CMAKE_SOURCE_DIR}/include")
 file(GLOB SOURCES "${CMAKE_SOURCE_DIR}/src/*")
 file(GLOB CUDA_SOURCES "${CMAKE_SOURCE_DIR}/src/cuda/*")
+file(GLOB CPU_SOURCES "${CMAKE_SOURCE_DIR}/src/cpu/*")
 file(GLOB MAZE_GEN_SOURCES "${CMAKE_SOURCE_DIR}/src/maze_gen/*")
 file(GLOB MAZE_RUN_SOURCES "${CMAKE_SOURCE_DIR}/src/maze_run/*")
 
 add_executable("${CMAKE_PROJECT_NAME}-maze_gen" ${MAZE_GEN_SOURCES})
-cuda_add_executable("${CMAKE_PROJECT_NAME}" ${SOURCES} ${CUDA_SOURCES})
+if(cuda)
+  cuda_add_executable("${CMAKE_PROJECT_NAME}" ${SOURCES} ${CUDA_SOURCES} ${CPU_SOURCES})
+else()
+  add_executable("${CMAKE_PROJECT_NAME}" ${SOURCES} ${CPU_SOURCES})
+endif()
 
 if(gui)
   find_package(Qt5Widgets REQUIRED)

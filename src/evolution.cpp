@@ -3,7 +3,7 @@
 #include <finch/builder.hpp>
 #include <finch/csv.hpp>
 #include <finch/program_node_types.hpp>
-#include <finch/cuda/cuda_evaluator.hpp>
+#include <finch/cpu/cpu_evaluator.hpp>
 
 #include <iostream>
 #include <chrono>
@@ -46,7 +46,7 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generat
   
   cout << "Evolving for " << max_generations << " generations." << endl;
   
-  cuda_evaluator eval;
+  cpu_evaluator eval;
   
   const csv::column_handle gen_handle = out->append_column("Generation");
   const csv::column_handle pop_size_handle = out->append_column("Population Size");
@@ -54,15 +54,11 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generat
   const csv::column_handle gen_time_handle = out->append_column("Generation Time (ms)");
   
   for(uint32_t i = 0; i < max_generations; ++i) {
-    cout << "generation " << i << "... ";
-    cout.flush();
+    cerr << "generation " << i << ".";
     
-    const steady_clock::time_point start_time = high_resolution_clock::now();
+    const auto start_time = high_resolution_clock::now();
     
     eval.evaluate(maze, pop, initial_state, 200);
-    
-    cout << "...";
-    cout.flush();
     
     vector<double> fitnesses = _fitness->map_all(pop);
     
@@ -77,14 +73,13 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generat
     
     
     // Mutate and reproduce
-    
-    const high_resolution_clock::time_point end_time = high_resolution_clock::now();
+    const auto end_time = high_resolution_clock::now();
     
     milliseconds time_span = duration_cast<milliseconds>(end_time - start_time);
     
     out->append_data(gen_time_handle, to_string(time_span.count()));
     
-    cout << "done! (" << time_span.count() << " ms)" << endl;
+    cerr << ". done! (" << time_span.count() << " ms)" << endl;
   }
   
   // Report results

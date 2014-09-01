@@ -1,13 +1,13 @@
-#ifdef USE_CUDA
-
+#include "cpu_program_interpreter.hpp"
 #include <finch/geometry.hpp>
 #include <finch/program_state.hpp>
 
 #include <stdio.h>
+#include <iostream>
 
 using namespace finch;
 
-__device__ bool occurence_in_cone_east(uint16_t *const maze, const uint16_t rows, const uint16_t cols,
+static bool occurence_in_cone_east(const uint16_t *const maze, const uint16_t rows, const uint16_t cols,
   uint16_t r, uint16_t c, const uint16_t val)
 {
   const int16_t out = c;
@@ -24,7 +24,7 @@ __device__ bool occurence_in_cone_east(uint16_t *const maze, const uint16_t rows
   return false;
 }
 
-__device__ bool occurence_in_cone_north(uint16_t *const maze, const uint16_t rows, const uint16_t cols,
+static bool occurence_in_cone_north(const uint16_t *const maze, const uint16_t rows, const uint16_t cols,
   uint16_t r, uint16_t c, const uint16_t val)
 {
   const int16_t out = r;
@@ -41,7 +41,7 @@ __device__ bool occurence_in_cone_north(uint16_t *const maze, const uint16_t row
   return false;
 }
 
-__device__ bool occurence_in_cone_west(uint16_t *const maze, const uint16_t rows, const uint16_t cols,
+static bool occurence_in_cone_west(const uint16_t *const maze, const uint16_t rows, const uint16_t cols,
   uint16_t r, uint16_t c, const uint16_t val)
 {
   const int16_t out = c;
@@ -59,7 +59,7 @@ __device__ bool occurence_in_cone_west(uint16_t *const maze, const uint16_t rows
   return false;
 }
 
-__device__ bool occurence_in_cone_south(uint16_t *const maze, const uint16_t rows, const uint16_t cols,
+static bool occurence_in_cone_south(const uint16_t *const maze, const uint16_t rows, const uint16_t cols,
   uint16_t r, uint16_t c, const uint16_t val)
 {
   const int16_t out = r;
@@ -77,7 +77,7 @@ __device__ bool occurence_in_cone_south(uint16_t *const maze, const uint16_t row
   return false;
 }
 
-__device__ bool occurence_in_cone(uint16_t *const maze, const uint32_t rows, const uint32_t cols,
+static bool occurence_in_cone(const uint16_t *const maze, const uint32_t rows, const uint32_t cols,
   const program_state state, const uint16_t val)
 {
   switch(state.dir) {
@@ -91,7 +91,7 @@ __device__ bool occurence_in_cone(uint16_t *const maze, const uint32_t rows, con
   return false;
 }
 
-__device__ bool occurence_ahead(uint16_t *const maze, const uint32_t rows, const uint32_t cols,
+static bool occurence_ahead(const uint16_t *const maze, const uint32_t rows, const uint32_t cols,
   const program_state state, const uint16_t val)
 {
   switch(state.dir) {
@@ -107,7 +107,7 @@ __device__ bool occurence_ahead(uint16_t *const maze, const uint32_t rows, const
 
 #define child_loc(i, t) (&op_loc[(t) + 1 + op_loc[(i) + 1]])
 
-__constant__ static const char *names[8] = {
+static const char *names[8] = {
   "hlt",
   "left",
   "right",
@@ -118,13 +118,16 @@ __constant__ static const char *names[8] = {
   "debug_point"
 };
 
-__global__ void program_interpreter(uint16_t *const maze, const uint32_t rows, const uint32_t cols,
-  uint32_t *offsets, uint32_t *programs, program_state state, uint32_t op_lim, program_state *res)
+void cpu_program_interpreter(const uint16_t *const maze, const uint32_t rows, const uint32_t cols,
+  uint32_t *offsets, uint32_t *programs, uint32_t program_index, program_state state, uint32_t op_lim, program_state *res)
 {
-  const uint32_t our_index = blockIdx.x * blockDim.x + threadIdx.x;
-  uint32_t *const our_program = programs + offsets[our_index];
+  using namespace std;
+  
+  uint32_t *const our_program = programs + offsets[program_index];
   uint32_t *stack[255];
   uint8_t stack_head = 0;
+  
+  uint32_t ops_executed = 0;
   
   stack[0] = 0;
   while(op_lim) {
@@ -179,9 +182,11 @@ __global__ void program_interpreter(uint16_t *const maze, const uint32_t rows, c
       printf("--- UNKNOWN INSTRUCTION %u ---\n", op);
       return;
     }
+    
+    ++ops_executed;
   }
   
-  res[our_index] = state;
+  res[program_index] = state;
 }
 
-#endif
+
