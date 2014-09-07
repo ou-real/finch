@@ -178,11 +178,11 @@ namespace finch
       vector<pt_type> matches = adjacent_satisfying(mat, p, static_cast<T>(0));
       for(auto it = matches.begin(); it != matches.end(); ++it) {
         const pt_type adj = *it;
-        const double g = g_score[p] + p.distance<double>(adj);
+        const double g = g_score[p] + p. template distance<double>(adj);
         if(find(closed.begin(), closed.end(), adj) != closed.end() && g >= g_score[adj]) continue;
         from[adj] = p;
         g_score[adj] = g;
-        f_score[adj] = g_score[adj] + adj.distance<double>(end);
+        f_score[adj] = g_score[adj] + adj. template distance<double>(end);
         remove(closed.begin(), closed.end(), adj);
         queue.push_back(adj);
       }

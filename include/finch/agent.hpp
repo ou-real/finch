@@ -17,6 +17,7 @@ namespace finch
     
     bool is_valid() const;
     
+    void set_program(const node &program);
     const node &program() const;
     const std::vector<double> &chromosomes() const;
     

@@ -29,6 +29,11 @@ bool agent::is_valid() const
   return _program.is_valid();
 }
 
+void agent::set_program(const node &program)
+{
+  _program = program;
+}
+
 const node &agent::program() const
 {
   return _program;

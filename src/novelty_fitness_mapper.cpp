@@ -3,54 +3,51 @@
 
 using namespace finch;
 
-novelty_fitness_mapper::novelty_fitness_mapper()
+novelty_fitness_mapper::novelty_fitness_mapper(const matrix2<uint16_t> &maze)
+  : _history(maze.rows(), maze.columns())
 {
 }
 
 std::vector<double> novelty_fitness_mapper::map_all(const population &generation)
 {
   using namespace std;
-  vector<program_state> states;
-  for(const agent &a : generation) states.push_back(a.final_state());
-  const static vector<program_state>::size_type evaluation_thread_size = 50UL;
-  vector<program_state>::size_type i = 0;
-  vector<double> res(states.size());
-  vector<thread> threads;
-  for(; i < states.size(); i += evaluation_thread_size) {
-    threads.emplace_back(thread(&novelty_fitness_mapper::evaluate, this,
-      ref(states), i, std::min(i + evaluation_thread_size, states.size()), ref(res)));
-  }
-  for(thread &t : threads) t.join();
-  _history.insert(_history.end(), states.begin(), states.end());
+  vector<double> res;
+  for(const auto &a : generation) res.push_back(evaluate(a.final_state()));
+  for(const auto &a : generation) ++_history.at(a.final_state().row, a.final_state().col);
+  _total_occurrences += generation.size();
   return res;
 }
 
 double novelty_fitness_mapper::map(const program_state &final_state)
 {
-  std::vector<double> res(1);
-  evaluate(std::vector<program_state> { final_state }, 0, 1, res);
-  _history.push_back(final_state);
-  return 0.0;
+  using namespace std;
+  const double ret = evaluate(final_state);
+  ++_history.at(final_state.row, final_state.col);
+  ++_total_occurrences;
+  return ret;
 }
 
 
-void novelty_fitness_mapper::evaluate(const std::vector<program_state> &states, const std::vector<program_state>::size_type start,
-  const std::vector<program_state>::size_type end, std::vector<double> &res)
+double novelty_fitness_mapper::evaluate(const program_state &state) const
 {
+  if(!_total_occurrences) return 0.0;
+  
   using namespace std;
-  for(vector<program_state>::size_type i = start; i < end; ++i) {
-    const program_state &current = states[i];
-    double val = 0.0;
-    
-    for(const program_state &state : _history) {
+  double val = 0.0;
+  
+  for(uint16_t row = 0; row < _history.rows(); ++row)
+  {
+    for(uint16_t col = 0; col < _history.columns(); ++col)
+    {
       double sum = 0.0;
-      sum += abs(static_cast<int32_t>(state.row) - static_cast<int32_t>(current.row));
-      sum += abs(static_cast<int32_t>(state.col) - static_cast<int32_t>(current.col));
+      uint32_t num = _history.at(row, col);
+      sum += num * abs(static_cast<int32_t>(row) - static_cast<int32_t>(state.row));
+      sum += num * abs(static_cast<int32_t>(col) - static_cast<int32_t>(state.col));
       val += sqrt(sum);
     }
-    
-    if(_history.size()) val /= _history.size();
-    
-    res[i] = val;
   }
+  
+  val /= _total_occurrences;
+  
+  return val;
 }

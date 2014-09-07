@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <ostream>
+#include <vector>
 #include <istream>
 
 namespace finch
@@ -13,6 +14,7 @@ namespace finch
   {
   public:
     typedef uint16_t index;
+    typedef int32_t sindex;
     typedef T type;
     
     matrix2()
@@ -51,6 +53,27 @@ namespace finch
     index columns() const
     {
       return _columns;
+    }
+    
+    std::vector<T> find_in_range(const index row, const index column, const index range) const
+    {
+      using namespace std;
+      vector<T> ret;
+      const index start_row = max<sindex>(0, static_cast<sindex>(row) - static_cast<sindex>(range));
+      const index start_col = max<sindex>(0, static_cast<sindex>(column) - static_cast<sindex>(range));
+      const index end_row   = min<index>(_rows, row + range);
+      const index end_col   = min<index>(_columns, column + range);
+      for(index r = start_row; r < end_row; ++r)
+      {
+        for(index c = start_col; c < end_col; ++c)
+        {
+          const sindex dr = static_cast<sindex>(row) - static_cast<sindex>(r);
+          const sindex dc = static_cast<sindex>(column) - static_cast<sindex>(c);
+          if(dr * dr + dc * dc > range * range) continue;
+          ret.push_back(at(r, c));
+        }
+      }
+      return ret;
     }
     
     T &at(const index row, const index column)

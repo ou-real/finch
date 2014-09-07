@@ -2,11 +2,13 @@
 
 using namespace finch;
 
-const node_type finch::null_type(0, 0, "");
+const node_type finch::null_type(0, 0, node_type::other, "");
 
-node_type::node_type(const node_type::id_type id, const uint8_t num_children, const std::string &name)
+node_type::node_type(const node_type::id_type id, const uint8_t num_children,
+    const node_type::instruction_type itype, const std::string &name)
   : _id(id)
   , _num_children(num_children)
+  , _itype(itype)
   , _name(name)
 {
 }
@@ -14,6 +16,7 @@ node_type::node_type(const node_type::id_type id, const uint8_t num_children, co
 node_type::node_type(const node_type &rhs)
   : _id(rhs._id)
   , _num_children(rhs._num_children)
+  , _itype(rhs._itype)
   , _name(rhs._name)
 {
 }
@@ -38,6 +41,11 @@ uint8_t node_type::num_children() const
   return _num_children;
 }
 
+node_type::instruction_type node_type::itype() const
+{
+  return _itype;
+}
+
 const std::string &node_type::name() const
 {
   return _name;
@@ -52,6 +60,7 @@ node_type &node_type::operator =(const node_type &rhs)
 {
   _id = rhs._id;
   _num_children = rhs._num_children;
+  _itype = rhs._itype;
   _name = rhs._name;
   
   return *this;

@@ -34,6 +34,9 @@ namespace finch
     
     std::string sexpr() const;
     
+    std::vector<std::vector<node *> > rowize();
+    std::vector<std::vector<const node *> > crowize() const;
+    
     node &operator =(const node &rhs);
     
   private:

@@ -3,20 +3,21 @@
 
 #include <finch/fitness_mapper.hpp>
 #include <vector>
+#include <finch/matrix2.hpp>
 
 namespace finch
 {
   class novelty_fitness_mapper : public fitness_mapper
   {
   public:
-    novelty_fitness_mapper();
+    novelty_fitness_mapper(const matrix2<uint16_t> &maze);
     virtual std::vector<double> map_all(const population &generation);
     virtual double map(const program_state &final_state);
     
   private:
-    void evaluate(const std::vector<program_state> &states, const std::vector<program_state>::size_type start,
-      const std::vector<program_state>::size_type end, std::vector<double> &res);
-    std::vector<program_state> _history;
+    double evaluate(const program_state &state) const;
+    matrix2<uint32_t> _history;
+    uint32_t _total_occurrences;
   };
 }
 

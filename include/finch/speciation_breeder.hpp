@@ -8,13 +8,8 @@ namespace finch
   class speciation_breeder : public breeder
   {
   public:
-    speciation_breeder(const std::shared_ptr<reproducer> &implementation);
-    
-    virtual bool is_breedable(const agent &_0, const agent &_1) const;
-    virtual agent breed(const agent &_0, const agent &_1) const;
-    
-  private:
-    
+    virtual population breed(const population &generation, const std::vector<double> &fitnesses) const;
+
   };
 }
 

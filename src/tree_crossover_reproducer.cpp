@@ -1,5 +1,8 @@
 #include <finch/tree_crossover_reproducer.hpp>
 
+#include <algorithm>
+#include <iostream>
+
 using namespace finch;
 
 tree_crossover_reproducer::tree_crossover_reproducer()
@@ -9,24 +12,53 @@ tree_crossover_reproducer::tree_crossover_reproducer()
 
 std::vector<agent> tree_crossover_reproducer::reproduce(const std::vector<agent> &agents) const
 {
-  node n1 = agents[0].program(), n2 = agents[1].program();
-  uint32_t loc1 = 0, loc2 = 0;
-  if(!select_tree_crossover_point(200, n1, loc1, n2, loc2)) return std::vector<agent>();
-  std::swap(n1.find(loc1), n2.find(loc2));
-  agent a1(n1), a2(n2);
-  return std::vector<agent> { a1, a2 };
-}
-
-bool tree_crossover_reproducer::select_tree_crossover_point(const uint32_t max_tries,
-  const node &prog1, uint32_t &final_loc1, const node &prog2, uint32_t &final_loc2) const
-{
-  for(uint32_t i = 0; i < max_tries; ++i) {
-    final_loc1 = rand() % prog1.num_nodes();
-    final_loc2 = rand() % prog2.num_nodes();
-    const node &node1 = prog1.cfind(final_loc1);
-    const node &node2 = prog2.cfind(final_loc2);
-    // if(node1.type().similar_to(node2.type())) return true;
-    return true;
-  }
-  return false;
+  using namespace std;
+  
+  /*auto find_max = [] (const vector<vector<node *>> &rows)
+  {
+    size_t max = 0;
+    for(size_t i = 0; i < rows.size(); ++i) max += (i + 1) * rows[rows.size() - i - 1].size();
+    return max;
+  };
+  
+  auto elem_select = [] (const vector<vector<node *>> &rows, size_t selection)
+  {
+    for(size_t i = 0; i < rows.size(); ++i)
+    {
+      const auto &c = rows[rows.size() - i - 1];
+      const size_t elem_size = (i + 1);
+      const size_t slot_size = elem_size * c.size();
+      if(selection >= slot_size)
+      {
+        selection -= slot_size;
+        continue;
+      }
+      
+      return c[selection / elem_size];
+    }
+    
+    return static_cast<node *>(nullptr);
+  };
+  
+  auto prog1 = agents[0].program(), prog2 = agents[1].program();
+  
+  auto rows1 = prog1.rowize();
+  auto rows2 = prog2.rowize();
+  
+  // Remove the root as a swap point.
+  // This selection would be useless.
+  rows1.erase(rows1.begin());
+  rows2.erase(rows2.begin());
+  
+  node *const n1 = elem_select(rows1, rand() % find_max(rows1));
+  node *const n2 = elem_select(rows2, rand() % find_max(rows2));
+  */
+  
+  auto prog1 = agents[0].program(), prog2 = agents[1].program();
+  node *const n1 = &prog1.find(rand() % prog1.num_nodes());
+  node *const n2 = &prog2.find(rand() % prog2.num_nodes());
+  
+  swap(*n1, *n2);
+  
+  return std::vector<agent> { agent(prog1), agent(prog2) };
 }

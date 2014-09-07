@@ -30,5 +30,5 @@ int main(int argc, char *argv[])
   
   in.close();
   
-  return ui::show_matrix2(maze);
+  return ui::show_matrix2(maze, ui::maze_view);
 }

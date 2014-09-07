@@ -1,7 +1,11 @@
 #include <finch/evolution.hpp>
 #include <finch/builder.hpp>
 #include <finch/csv.hpp>
+#include <finch/objective_fitness_mapper.hpp>
 #include <finch/novelty_fitness_mapper.hpp>
+#include <finch/normal_breeder.hpp>
+#include <finch/expression_simplifier.hpp>
+#include <finch/program_node_types.hpp>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -41,7 +45,21 @@ int main(int argc, char *argv[])
   
   builder pop_builder;
   
-  novelty_fitness_mapper novelty;
+  
+  
+  novelty_fitness_mapper novelty(maze);
+  normal_breeder breed;
+  
+  program_state goal_state;
+  if(!maze.index_of(3U, goal_state.row, goal_state.col)) {
+    cerr << "Couldn't find end" << endl;
+    return 1;
+  }
+  
+  cout << goal_state.row << ", " << goal_state.col << endl;
+  
+  objective_fitness_mapper objective(goal_state);
+  
   
   stringstream evolve_log_name;
   time_t t = time(nullptr);
@@ -49,7 +67,7 @@ int main(int argc, char *argv[])
   evolve_log_name << "evolve_log" << ".csv";
   ofstream evolve_log(evolve_log_name.str().c_str());
   csv out;
-  evolution e(500, &pop_builder, &novelty);
+  evolution e(400, &pop_builder, &objective, &breed);
   e.evolve(maze, 200, &out);
   out.write(evolve_log);
   evolve_log.close();

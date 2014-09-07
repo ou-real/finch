@@ -3,7 +3,7 @@
 
 using namespace finch;
 
-node finch::null_node(node_type(0, 0, ""));
+node finch::null_node(node_type(0, 0, node_type::other, ""));
 
 node::node(const node_type &type)
   : _type(type)
@@ -105,6 +105,56 @@ std::string node::sexpr() const
   s << ")";
   
   return s.str();
+}
+
+std::vector<std::vector<node *> > node::rowize()
+{
+  using namespace std;
+  
+  vector<vector<node *> > ret;
+  for(auto &child : _children)
+  {
+    const auto child_rows = child.rowize();
+    auto rit = ret.begin();
+    for(auto it = child_rows.begin();
+      it != child_rows.end(); ++it, ++rit)
+    {
+      if(rit == ret.end())
+      {
+        ret.push_back(vector<node *> {});
+        rit = ret.end() - 1;
+      }
+      rit->insert(rit->end(), it->begin(), it->end());
+    }
+  }
+  vector<node *> this_row { this };
+  ret.insert(ret.begin(), &this_row, &this_row + 1);
+  return ret;
+}
+
+std::vector<std::vector<const node *> > node::crowize() const
+{
+  using namespace std;
+  
+  vector<vector<const node *> > ret;
+  for(const auto &child : _children)
+  {
+    const auto child_rows = child.crowize();
+    auto rit = ret.begin();
+    for(auto it = child_rows.begin();
+      it != child_rows.end(); ++it, ++rit)
+    {
+      if(rit == ret.end())
+      {
+        ret.push_back(vector<const node *> {});
+        rit = ret.end() - 1;
+      }
+      rit->insert(rit->end(), it->begin(), it->end());
+    }
+  }
+  vector<const node *> this_row { this };
+  ret.insert(ret.begin(), &this_row, &this_row + 1);
+  return ret;
 }
 
 node &node::operator =(const node &rhs)
