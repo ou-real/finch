@@ -16,6 +16,7 @@
 #include <fstream>
 #include <chrono>
 #include <ratio>
+#include <sstream>
 
 using namespace finch;
 
@@ -29,7 +30,7 @@ evolution::evolution(const uint32_t pop_size, const builder *const initial_popul
   
 }
 
-void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generations, csv *const out)
+void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generations, const std::string &heatmap_prefix, csv *const out)
 {
   using namespace std;
   using namespace std::chrono;
@@ -73,6 +74,7 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generat
   const csv::column_handle avg_fit_handle = out->append_column("Average Generation Fitness");
   const csv::column_handle gen_time_handle = out->append_column("Generation Time (ms)");
   
+  matrix2<uint16_t> heatmap_total(maze.rows(), maze.columns());
   
   vector<double> fitnesses;
   for(uint32_t i = 0; i < max_generations; ++i) {
@@ -80,10 +82,33 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generat
     
     const auto start_time = high_resolution_clock::now();
     
-    eval.evaluate(maze, pop, initial_state, 200);
+    eval.evaluate(maze, pop, initial_state, 300);
+    
+    {
+      matrix2<uint16_t> heatmap(maze.rows(), maze.columns());
+      for(const auto &a : pop)
+      {
+        ++heatmap.at(a.final_state().row, a.final_state().col);
+        ++heatmap_total.at(a.final_state().row, a.final_state().col);
+      }
+      stringstream heatmap_file;
+      heatmap_file << heatmap_prefix << "-gen" << i << ".heatmap";
+      ofstream heatmap_out(heatmap_file.str());
+      serialize(heatmap_out, heatmap);
+      heatmap_out.close();
+    }
     
     cerr << ".";
     fitnesses = _fitness->map_all(pop);
+    
+    if(_fitness->inverted_fitness())
+    {
+      double max_fitness = 0.0;
+      for(auto f : fitnesses) max_fitness = max(f, max_fitness);
+      for(auto &f : fitnesses) f = max_fitness - f;
+    }
+    
+    if(i + 1 >= max_generations) break;
     
     double avg = 0.0;
     for(auto f : fitnesses) avg += f;
@@ -96,7 +121,7 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generat
       if(i.row == f.row && i.col == f.col)
       {
         cerr << "solution found!" << endl;
-        return;
+        goto done;
       }
     }
 
@@ -117,7 +142,16 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generat
     cerr << "done! (" << time_span.count() << " ms)" << endl;
   }
   
-  fitnesses = _fitness->map_all(pop);
+  done:
+  
+  {
+    stringstream heatmap_total_file;
+    heatmap_total_file << heatmap_prefix << "-total.heatmap";
+    ofstream heatmap_total_out(heatmap_total_file.str());
+    serialize(heatmap_total_out, heatmap_total);
+    heatmap_total_out.close();
+  }
+  
   double best_fitness = 100000.0;
   size_t index = 0;
   for(size_t i = 0; i < fitnesses.size(); ++i)
@@ -127,7 +161,7 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generat
     index = i;
   }
   
-  cout << "Best ind " << best_fitness << ". " << final_state.row << ", " << final_state.col
+  cout << "Best ind " << best_fitness << " (" << index << ")" << ". " << final_state.row << ", " << final_state.col
     << " vs " << pop[index].final_state().row << ", " << pop[index].final_state().col << endl;
   
   vector<uint32_t> outp;
@@ -148,6 +182,8 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generat
     pop[index].program().write_dot(best_ind_dot);
     best_ind_dot.close();
   }
+  
+  _fitness->emit_summary("final_fitness");
   
   // Report results
   

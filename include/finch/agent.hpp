@@ -19,6 +19,7 @@ namespace finch
     
     void set_program(const node &program);
     const node &program() const;
+    void set_chromosomes(const std::vector<double> &chromosomes);
     const std::vector<double> &chromosomes() const;
     
     void set_final_state(const program_state &final_state);

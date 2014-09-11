@@ -14,6 +14,10 @@ namespace finch
     
     virtual double map(const program_state &final_state);
     
+    virtual bool inverted_fitness() const;
+    
+    bool emit_summary(const std::string &tag) const;
+    
   private:
     program_state _initial_state;
   };

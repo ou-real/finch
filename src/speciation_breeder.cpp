@@ -6,6 +6,10 @@
 #include <finch/option.hpp>
 
 #include <algorithm>
+#include <iostream>
+#include <map>
+#include <fstream>
+#include <sstream>
 
 using namespace finch;
 
@@ -17,6 +21,19 @@ namespace
     const double dy = ay - by;
     return sqrt(dx * dx + dy * dy);
   }
+  
+  inline double rand_normal(const uint32_t resolution = 10000)
+  {
+    return static_cast<double>(rand() % resolution) / static_cast<double>(resolution);
+  }
+}
+
+speciation_breeder::speciation_breeder(const matrix2<uint16_t> &maze, const uint16_t goal_row, const uint16_t goal_col)
+  : _maze(maze)
+  , _goal_row(goal_row)
+  , _goal_col(goal_col)
+  , _debug_totals(_maze.rows(), _maze.columns())
+{
 }
 
 population speciation_breeder::breed(const population &generation, const std::vector<double> &fitnesses) const
@@ -26,51 +43,106 @@ population speciation_breeder::breed(const population &generation, const std::ve
   population ret;
   tree_crossover_reproducer repr;
   builder random_builder;
-  matrix2<vector<agent> > phenotypes;
-  for(const auto &a : generation)
-  {
-    phenotypes.at(a.final_state().row, a.final_state().col).push_back(a);
-  }
   
   population mut_gen = generation;
+  const double max_dist = sqrt(_maze.rows() * _maze.rows() + _maze.columns() * _maze.columns());
+  
+  for(auto it = mut_gen.begin(); it != mut_gen.end(); ++it)
+  {
+    if(it->chromosomes().size() == 1) continue;
+    it->set_chromosomes(vector<double> { rand_normal() * max_dist });
+  }
+  
+  matrix2<uint16_t> resource_dist(_maze.rows(), _maze.columns());
+  
+  const double scaling_factor = 10.0 / max_dist; // TODO: Non-const multiplier
+  for(uint16_t r = 0; r < resource_dist.rows(); ++r)
+  {
+    for(uint16_t c = 0; c < resource_dist.columns(); ++c)
+    {
+      const int32_t dr = static_cast<int32_t>(_goal_row) - static_cast<int32_t>(r);
+      const int32_t dc = static_cast<int32_t>(_goal_col) - static_cast<int32_t>(c);
+      resource_dist.at(r, c) = (max_dist - sqrt(dr * dr + dc * dc)) * scaling_factor;
+    }
+  }
+  
+  static bool once = false;
+  if(!once)
+  {
+    ofstream resource_dist_file("resource_dist.grad");
+    serialize(resource_dist_file, resource_dist);
+    resource_dist_file.close();
+    once = true;
+  }
+  
+  for(auto it = mut_gen.begin(); it != mut_gen.end();)
+  {
+    // cout << mut_gen.size() << endl;
+    const program_state &c = it->final_state();
+    uint16_t &v = resource_dist.at(c.row, c.col);
+    if(!v)
+    {
+      it = mut_gen.erase(it);
+      continue;
+    }
+    --v;
+    ++it;
+  }
+  
+  matrix2<vector<const agent *> > phenotypes(_maze.rows(), _maze.columns());
+  for(const auto &a : mut_gen)
+  {
+    phenotypes.at(a.final_state().row, a.final_state().col).push_back(&a);
+  }
+  
+  map<const agent *, vector<const agent *> > matches;
+  for(const auto &a : mut_gen)
+  {
+    const vector<vector<const agent *> > plausible_mates =
+      phenotypes.find_in_range(a.final_state().row, a.final_state().col,
+        a.chromosomes()[0]);
+    
+    vector<const agent *> flattened_mates;
+    for(const auto &v : plausible_mates) flattened_mates.insert(flattened_mates.end(), v.begin(), v.end());
+    
+    for(auto it = flattened_mates.begin(); it != flattened_mates.end();)
+    {
+      if(distance((*it)->final_state().col, (*it)->final_state().row,
+        a.final_state().col, a.final_state().row) > (*it)->chromosomes()[0])
+      {
+        it = flattened_mates.erase(it);
+        continue;
+      }
+      ++it;
+    }
+    
+    matches[&a] = flattened_mates;
+  }
+  
   while(ret.size() < generation.size() && !mut_gen.empty())
   {
     population::size_type mi = rand() % mut_gen.size();
     const agent &mother = mut_gen[mi];
-    const vector<vector<agent> > plausible_mates =
-      phenotypes.find_in_range(mother.final_state().row, mother.final_state().col,
-        mother.chromosomes()[0]);
+    const vector<const agent *> fathers = matches[&mother];
+    if(fathers.empty()) continue;
     
-    vector<agent> flattened_mates;
-    for(const auto &v : plausible_mates)
-    {
-      flattened_mates.insert(flattened_mates.end(), v.begin(), v.end());
-    }
+    agent father = *fathers[rand() % fathers.size()];
     
-    option<agent> father;
-    while(!flattened_mates.empty())
-    {
-      const vector<agent>::size_type fi = rand() % flattened_mates.size();
-      const auto &potential_father = flattened_mates[fi];
-      
-      if(distance(potential_father.final_state().col, potential_father.final_state().row,
-        mother.final_state().col, mother.final_state().row) > potential_father.chromosomes()[0])
-      {
-        flattened_mates.erase(flattened_mates.begin() + fi);
-        continue;
-      }
-      
-      father = option<agent>(potential_father);
-    }
+    agent mutant  = random_builder.grow(program_types_set, 2, 5);
+    mutant.set_chromosomes(vector<double> { rand_normal() * max_dist });
     
-    mut_gen.erase(mut_gen.begin() + mi);
+    agent child   = repr.reproduce(vector<agent> { mother, father })[0];
+    child.set_chromosomes(vector<double> { (mother.chromosomes()[0] + father.chromosomes()[0]) / 2.0 });
     
-    if(father.none()) continue;
+    agent res     = repr.reproduce(vector<agent> { child, mutant }) [0];
+    res.set_chromosomes(vector<double> { (child.chromosomes()[0] + mutant.chromosomes()[0]) / 2.0 });
     
-    const agent mutant  = random_builder.grow(program_types_set, 5, 10);
-    const agent child   = repr.reproduce(vector<agent> { mother, father.get() })[0];
-    const agent res     = repr.reproduce(vector<agent> { child, mutant }) [0];
     ret.push_back(res);
+    
+    // cout << "Created agent with dist " << res.chromosomes()[0] << endl;
   }
+  
+  
+  
   return ret;
 }

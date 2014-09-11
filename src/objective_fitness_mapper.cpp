@@ -26,3 +26,13 @@ double objective_fitness_mapper::map(const program_state &final_state)
   // Distance formula
   return sqrt(dr * dr + dc * dc);
 }
+
+bool objective_fitness_mapper::inverted_fitness() const
+{
+  return false;
+}
+
+bool objective_fitness_mapper::emit_summary(const std::string &tag) const
+{
+  return true;
+}

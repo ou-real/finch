@@ -11,13 +11,13 @@ namespace finch
   public:
     template<typename F>
     option(const F &t)
-      : _empty(true)
+      : _empty(false)
     {
       new (_t) T(t);
     }
     
     option()
-      : _empty(false)
+      : _empty(true)
     {
     }
     

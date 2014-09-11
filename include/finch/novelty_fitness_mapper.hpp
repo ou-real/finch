@@ -14,6 +14,10 @@ namespace finch
     virtual std::vector<double> map_all(const population &generation);
     virtual double map(const program_state &final_state);
     
+    virtual bool inverted_fitness() const;
+    
+    virtual bool emit_summary(const std::string &tag) const;
+    
   private:
     double evaluate(const program_state &state) const;
     matrix2<uint32_t> _history;

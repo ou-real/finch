@@ -9,6 +9,8 @@ namespace finch
 {
   struct program_state
   {
+    program_state();
+    
     cardinal_direction dir;
     uint16_t row;
     uint16_t col;

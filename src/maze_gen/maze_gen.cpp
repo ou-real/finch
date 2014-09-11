@@ -4,14 +4,16 @@
 #include <sstream>
 #include <fstream>
 #include <finch/maze_algorithms.hpp>
+#include <json/json.h>
+using namespace finch;
+using namespace Json;
+using namespace std;
 
 using namespace finch;
 
 void usage(const char *const path)
 {
-  std::cout << path << " [file] [--rows value] [--columns value] [--min_dist value]"
-    << "[--max_dist value] [--min_area value] [--rand_seed value] [--maze_count value]"
-    << "[--with_border 0|1]" << std::endl;
+  std::cout << path << " [conf]" << std::endl;
 }
 
 void parse_failure(const char *const message)
@@ -28,43 +30,28 @@ int main(int argc, char *argv[])
     return 1;
   }
   
-  uint32_t rows = 50;
-  uint32_t columns = 50;
-  uint32_t min_dist = 0;
-  uint32_t max_dist = UINT32_MAX;
-  uint32_t min_area = 10;
-  uint32_t rand_seed = time(NULL);
-  uint32_t maze_count = 1;
-  uint32_t with_border = 1;
-  for(int32_t i = 2; i < argc; ++i) {
-    const char *const current = argv[i];
-    if(!strcmp("--rows", current)) {
-      if(i + 1 >= argc) parse_failure("Missing value for rows");
-      rows = atoi(argv[++i]);
-    } else if(!strcmp("--columns", current)) {
-      if(i + 1 >= argc) parse_failure("Missing value for columns");
-      columns = atoi(argv[++i]);
-    } else if(!strcmp("--min_dist", current)) {
-      if(i + 1 >= argc) parse_failure("Missing value for min_dist");
-      min_dist = atoi(argv[++i]);
-    } else if(!strcmp("--max_dist", current)) {
-      if(i + 1 >= argc) parse_failure("Missing value for max_dist");
-      max_dist = atoi(argv[++i]);
-    } else if(!strcmp("--min_area", current)) {
-      if(i + 1 >= argc) parse_failure("Missing value for min_area");
-      min_area = atoi(argv[++i]);
-    } else if(!strcmp("--rand_seed", current)) {
-      if(i + 1 >= argc) parse_failure("Missing value for rand_seed");
-      rand_seed = atoi(argv[++i]);
-    } else if(!strcmp("--maze_count", current)) {
-      if(i + 1 >= argc) parse_failure("Missing value for maze_count");
-      maze_count = atoi(argv[++i]);
-    } else if(!strcmp("--with_border", current)) {
-      if(i + 1 >= argc) parse_failure("Missing value for with_border");
-      with_border = atoi(argv[++i]);
-      if(with_border != 1 && with_border != 0) parse_failure("with_border must be 0 or 1");
-    }
+  Value root;
+  Reader reader;
+  ifstream conf_file(argv[1]);
+  if(!reader.parse(conf_file, root, false))
+  {
+    cerr << reader.getFormatedErrorMessages() << endl;
+    conf_file.close();
+    return 1;
   }
+  conf_file.close();
+  
+  const Value maze_gen = root["maze_gen"];
+  const Value maze_value = root["maze"];
+  
+  const string name = root["name"].asString();
+  
+  uint32_t rows = maze_gen["rows"].asUInt();
+  uint32_t columns = maze_gen["columns"].asUInt();
+  uint32_t min_dist = maze_gen["distance_min"].asUInt();
+  uint32_t max_dist = maze_gen["distance_max"].asUInt();
+  uint32_t min_area = maze_gen["area_min"].asUInt();
+  uint32_t rand_seed = maze_gen["rand_seed"].asUInt();
   
   using namespace std;
   
@@ -74,26 +61,27 @@ int main(int argc, char *argv[])
     << "\t" << "min_dist: " << min_dist << endl
     << "\t" << "max_dist: " << max_dist << endl
     << "\t" << "min_area: " << min_area << endl
-    << "\t" << "with_border: " << with_border << endl
-    << "\t" << "rand_seed: " << rand_seed << endl
-    << "\t" << "maze_count: " << maze_count << endl;
+    << "\t" << "rand_seed: " << rand_seed << endl;
   
   srand(rand_seed);
   
+  const std::string maze_prefix = maze_value["prefix"].asString();
+  const unsigned maze_first = maze_value["suffix_first"].asUInt();
+  const unsigned maze_last = maze_value["suffix_last"].asUInt();
   
-  for(uint32_t i = 0; i < maze_count; ++i) {
+  for(uint32_t i = maze_first; i <= maze_last; ++i) {
     stringstream filename;
-    filename << argv[1];
-    if(maze_count > 1) filename << "-" << i;
+    filename << name << "/" << maze_prefix << "-" << i << ".maze";
+    cout << "Generating \"" << filename.str() << "\"..." << endl;
     ofstream out(filename.str().c_str());
     if(!out.is_open()) {
-      std::cerr << "Failed to open \"" << argv[1] << "\" for writing!" << std::endl;
+      std::cerr << "Failed to open \"" << filename.str() << "\" for writing!" << std::endl;
       return 1;
     }
   
     matrix2<uint16_t> maze(rows, columns);
-    if(with_border) maze.fill_border(1U);
-    subdivide(maze, (uint16_t)0U, (uint16_t)1U, min_area, with_border);
+    maze.fill_border(1U);
+    subdivide(maze, (uint16_t)0U, (uint16_t)1U, min_area, 1);
   
     point2<matrix2<uint16_t>::index> a;
     point2<matrix2<uint16_t>::index> b;
@@ -123,7 +111,6 @@ int main(int argc, char *argv[])
   
     out.close();
   }
-  
   
   return 0;
 }

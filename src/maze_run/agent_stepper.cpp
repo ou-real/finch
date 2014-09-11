@@ -45,14 +45,14 @@ void agent_stepper::step()
 void agent_stepper::reset()
 {
   if(_stepper) _stepper->reset();
-  _op_lim = 200;
+  _op_lim = 300;
   update();
 }
 
 void agent_stepper::update()
 {
   if(!_stepper) return;
-  if(_op_lim < 200)
+  if(_op_lim < 300)
   {
     _maze.at(_last_pos_r, _last_pos_c) = _last_val;
   }

@@ -2,6 +2,10 @@
 
 using namespace finch;
 
+fitness_mapper::~fitness_mapper()
+{
+}
+
 std::vector<double> fitness_mapper::map_all(const population &generation)
 {
   using namespace std;

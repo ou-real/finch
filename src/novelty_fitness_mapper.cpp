@@ -1,5 +1,7 @@
 #include <finch/novelty_fitness_mapper.hpp>
 #include <thread>
+#include <fstream>
+#include <iostream>
 
 using namespace finch;
 
@@ -50,4 +52,42 @@ double novelty_fitness_mapper::evaluate(const program_state &state) const
   val /= _total_occurrences;
   
   return val;
+}
+
+bool novelty_fitness_mapper::inverted_fitness() const
+{
+  return true;
+}
+
+bool novelty_fitness_mapper::emit_summary(const std::string &tag) const
+{
+  using namespace std;
+  
+  uint32_t max = 0;
+  for(uint16_t row = 0; row < _history.rows(); ++row)
+  {
+    for(uint16_t col = 0; col < _history.columns(); ++col)
+    {
+      max = std::max(max, _history.at(row, col));
+    }
+  }
+  
+  const double scaling_factor = static_cast<double>(0xFFFF) / max;
+  
+  matrix2<uint16_t> out(_history.rows(), _history.columns());
+  for(uint16_t row = 0; row < _history.rows(); ++row)
+  {
+    for(uint16_t col = 0; col < _history.columns(); ++col)
+    {
+      cout << _history.at(row, col) << " ";
+      out.at(row, col) = _history.at(row, col) * scaling_factor;
+    }
+    cout << endl;
+  }
+  
+  ofstream file(tag + ".grad");
+  if(!file.is_open()) return false;
+  serialize(file, out);
+  file.close();
+  return true;
 }

@@ -9,6 +9,7 @@ namespace finch
   class breeder
   {
   public:
+    virtual ~breeder();
     virtual population breed(const population &generation, const std::vector<double> &fitnesses) const = 0;
   };
 }

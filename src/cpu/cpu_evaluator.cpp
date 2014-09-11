@@ -43,7 +43,6 @@ void cpu_evaluator::evaluate(const matrix2<uint16_t> &maze, population &generati
     
     threads.emplace_back(thread([start, end, &maze, &offsets, &programs, &initial_state, &op_lim, &res]
       {
-        
         for(uint32_t i = start; i < end; ++i)
         {
           matrix2<uint16_t> tmp = maze;
@@ -56,9 +55,9 @@ void cpu_evaluator::evaluate(const matrix2<uint16_t> &maze, population &generati
   const auto end_time = high_resolution_clock::now();
   
   git = generation.begin();
-  for(vector<program_state>::const_iterator it = res.begin();
-    it != res.end() && git != generation.end(); ++it, ++git)
+  for(auto it = res.begin(); it != res.end() && git != generation.end(); ++it, ++git)
   {
+    // cout << "final_state: " << it->row << ", " << it->col << endl; 
     (*git).set_final_state(*it);
   }
 }

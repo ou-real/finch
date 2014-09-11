@@ -4,6 +4,7 @@ using namespace finch;
 
 agent::agent()
   : _program(null_type)
+  , _chromosomes(std::vector<double>())
   , _final_state_set(false)
 {
   
@@ -37,6 +38,11 @@ void agent::set_program(const node &program)
 const node &agent::program() const
 {
   return _program;
+}
+
+void agent::set_chromosomes(const std::vector<double> &chromosomes)
+{
+  _chromosomes = chromosomes;
 }
 
 const std::vector<double> &agent::chromosomes() const

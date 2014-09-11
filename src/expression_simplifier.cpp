@@ -35,6 +35,11 @@ node expression_simplifier::visit(node n, std::vector<int16_t> seen) const
     {
       seen[n.type().id()] = i;
     }
+    else if(n.type().itype() == node_type::other)
+    {
+      // All bets are off if we see other
+      seen.assign(seen.size(), -1);
+    }
     
     n[i] = visit(n[i], seen);
   }

@@ -129,10 +129,16 @@ void matrix2_view::paint_gradient(QPaintEvent *event)
     p.drawLine(xOff, yOff + blockHeight * r, xOff + size, yOff + blockHeight * r);
   }
   
+  uint16_t max = 0;
   for(matrix2<uint16_t>::index r = 0; r < _mat.rows(); ++r) {
     for(matrix2<uint16_t>::index c = 0; c < _mat.columns(); ++c) {
-      const uint16_t v = _mat.at(r, c);
-      const QColor co(v / 255, v / 255, v / 255);
+      max = std::max(max, _mat.at(r, c));
+    }
+  }
+  for(matrix2<uint16_t>::index r = 0; r < _mat.rows(); ++r) {
+    for(matrix2<uint16_t>::index c = 0; c < _mat.columns(); ++c) {
+      const uint8_t v = static_cast<double>(_mat.at(r, c)) / static_cast<double>(max) * 255;
+      const QColor co(v, v, v);
       p.fillRect(xOff + blockWidth * c, yOff + blockHeight * r,
         blockWidth + 1.0f, blockHeight + 1.0f, co);
     }
