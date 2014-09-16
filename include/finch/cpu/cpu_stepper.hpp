@@ -10,7 +10,7 @@ namespace finch
   class cpu_stepper
   {
   public:
-    cpu_stepper(const matrix2<uint16_t> &maze, uint32_t *const program, const program_state &state);
+    cpu_stepper(const matrix2<uint16_t> &maze, uint32_t *const program, const program_state &state, const program_state &goal);
     ~cpu_stepper();
     
     const matrix2<uint16_t> &maze() const;
@@ -25,6 +25,7 @@ namespace finch
     matrix2<uint16_t> _mod;
     uint32_t *_program;
     program_state _initial_state;
+    program_state _goal_state;
     program_state _state;
     void *_istate;
   };

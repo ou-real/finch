@@ -13,7 +13,7 @@ cpu_evaluator::cpu_evaluator()
 }
 
 void cpu_evaluator::evaluate(const matrix2<uint16_t> &maze, population &generation,
-  const program_state &initial_state, const uint32_t op_lim) const
+  const program_state &initial_state, const uint32_t op_lim, const program_state &goal_state) const
 {
   matrix2<uint16_t> m = maze;
   using namespace std;
@@ -46,7 +46,7 @@ void cpu_evaluator::evaluate(const matrix2<uint16_t> &maze, population &generati
         for(uint32_t i = start; i < end; ++i)
         {
           cpu_program_interpreter(m.ptr(), m.rows(), m.columns(),
-            &offsets[0], &programs[0], i, initial_state, op_lim, &res[0]);
+            &offsets[0], &programs[0], i, initial_state, op_lim, &res[0], goal_state);
         }
       }));
   }

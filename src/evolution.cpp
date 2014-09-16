@@ -15,6 +15,7 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <thread>
 #include <ratio>
 #include <sstream>
 
@@ -78,6 +79,7 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const std::string &heatmap
   const csv::column_handle pop_size_handle = out->append_column("Population Size");
   const csv::column_handle avg_fit_handle = out->append_column("Average Generation Fitness");
   const csv::column_handle gen_time_handle = out->append_column("Generation Time (ms)");
+  const csv::column_handle soln_handle = out->append_column("Solution Found");
   
   matrix2<uint16_t> heatmap_total(maze.rows(), maze.columns());
   
@@ -87,7 +89,7 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const std::string &heatmap
     
     const auto start_time = high_resolution_clock::now();
     
-    eval.evaluate(maze, pop, initial_state, 300);
+    eval.evaluate(maze, pop, initial_state, 300, final_state);
     
     {
       matrix2<uint16_t> heatmap(maze.rows(), maze.columns());
@@ -119,6 +121,12 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const std::string &heatmap
     for(auto f : fitnesses) avg += f;
     avg /= fitnesses.size();
     
+    out->append_data(gen_handle, to_string(i));
+    // May change in the future. Currently constant.
+    out->append_data(pop_size_handle, to_string(pop_size));
+    out->append_data(avg_fit_handle, to_string(avg));
+    
+    bool soln = false;
     for(const auto &a : pop)
     {
       const program_state &i = final_state;
@@ -126,18 +134,43 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const std::string &heatmap
       if(i.row == f.row && i.col == f.col)
       {
         cerr << "solution found!" << endl;
-        goto done;
+        soln = true;
+        
       }
     }
-
-    out->append_data(gen_handle, to_string(i));
-    // May change in the future. Currently constant.
-    out->append_data(pop_size_handle, to_string(pop_size));
-    out->append_data(avg_fit_handle, to_string(avg));
+    out->append_data(soln_handle, to_string(soln));
+    if(soln) goto done;
     
     cerr << ".";
     // Mutate and reproduce
-    pop = _breed->breed(pop, fitnesses);
+    vector<thread> breeders;
+    const static uint8_t breeder_threads = 8;
+    const static uint32_t agents_per_thread = pop.size() / breeder_threads;
+    population subpops[breeder_threads];
+    vector<double> subfits[breeder_threads];
+    population breed_res[breeder_threads];
+    for(uint8_t b = 0; b < breeder_threads; ++b)
+    {
+      const population::size_type begin = b       * agents_per_thread;
+      population::size_type end         = (b + 1) * agents_per_thread;
+      if(b + 1 == breeder_threads) end = pop.size();
+      
+      subpops[b] = population(pop.begin() + begin, pop.begin() + end);
+      subfits[b] = vector<double>(fitnesses.begin() + begin, fitnesses.begin() + end);
+    }
+    
+    for(uint8_t b = 0; b < breeder_threads; ++b)
+    {
+      breeders.emplace_back(thread([&breed_res, b, this, &subpops, &subfits] {
+        breed_res[b] = _breed->breed(subpops[b], subfits[b]);
+      }));
+    }
+    
+    for(auto &t : breeders) t.join();
+    
+    pop.clear();
+    for(auto &br : breed_res) pop.insert(pop.end(), br.begin(), br.end());
+    
     const auto end_time = high_resolution_clock::now();
     
     milliseconds time_span = duration_cast<milliseconds>(end_time - start_time);

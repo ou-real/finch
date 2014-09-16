@@ -31,7 +31,13 @@ int show_agent_stepper(const matrix2<uint16_t> &mat, uint32_t *const program)
     cerr << "Couldn't find start" << endl;
     return 1;
   }
-  cpu_stepper cpu(mat, program, initial_state);
+  program_state final_state;
+  final_state.dir = east;
+  if(!mat.index_of(3U, final_state.row, final_state.col)) {
+    cerr << "Couldn't find finish" << endl;
+    return 1;
+  }
+  cpu_stepper cpu(mat, program, initial_state, final_state);
   stepper.resize(mat.columns() * 10, mat.rows() * 10);
   stepper.set_stepper(&cpu);
   stepper.show();

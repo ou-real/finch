@@ -6,11 +6,12 @@
 
 using namespace finch;
 
-cpu_stepper::cpu_stepper(const matrix2<uint16_t> &maze, uint32_t *const program, const program_state &state)
+cpu_stepper::cpu_stepper(const matrix2<uint16_t> &maze, uint32_t *const program, const program_state &state, const program_state &goal)
   : _maze(maze)
   , _mod(maze)
   , _program(program)
   , _initial_state(state)
+  , _goal_state(goal)
   , _istate(new interpreter_state)
 {
   reset();
@@ -47,5 +48,5 @@ void cpu_stepper::step(uint32_t &op_lim)
   using namespace std;
   _mod = _maze;
   cpu_program_stepper(_mod.ptr(), _maze.rows(), _maze.columns(),
-    _program, _state, op_lim, reinterpret_cast<interpreter_state *>(_istate));
+    _program, _state, op_lim, reinterpret_cast<interpreter_state *>(_istate), _goal_state);
 }

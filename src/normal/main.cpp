@@ -62,6 +62,8 @@ void test_novelty()
 
 bool kickoff(istream &in)
 {
+  cin.get();
+  
   using namespace Json;
   
   Value root;
@@ -174,7 +176,7 @@ bool kickoff(istream &in)
         exp_params["novelty_weight"].asDouble(), new novelty_fitness_mapper(maze));
     case speciation_method:
       b = new speciation_breeder(e, maze, goal_state.row, goal_state.col);
-      f = new speciation_fitness_mapper;
+      f = new objective_fitness_mapper(goal_state);
       break;
     default: return false;
     }

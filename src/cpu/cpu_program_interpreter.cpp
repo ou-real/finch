@@ -126,7 +126,7 @@ void cpu_stepper_init(interpreter_state *const state)
 }
 
 bool cpu_program_stepper(uint16_t *const maze, const uint32_t rows, const uint32_t cols,
-  uint32_t *program, program_state &state, uint32_t &op_lim, interpreter_state *const istate)
+  uint32_t *program, program_state &state, uint32_t &op_lim, interpreter_state *const istate, const finch::program_state &goal)
 {
   using namespace std;
   
@@ -137,7 +137,7 @@ bool cpu_program_stepper(uint16_t *const maze, const uint32_t rows, const uint32
   {
     cout << "stack:" << endl;
     for(uint8_t i = istate->stack_head; i > 0; --i) cout << "\t" << istate->stack[i] << endl;
-    
+    if(state.row == goal.row && state.col == goal.col) goto end;
     uint32_t *const op_loc = istate->stack[istate->stack_head--];
     
     if(!op_loc) break;
@@ -191,6 +191,8 @@ bool cpu_program_stepper(uint16_t *const maze, const uint32_t rows, const uint32
     }
   }
   
+end:
+  
   cout << "<" << state.row << ", " << state.col << "> " << "dir: " << state.dir << endl;
   
   return !op_lim;
@@ -198,7 +200,8 @@ bool cpu_program_stepper(uint16_t *const maze, const uint32_t rows, const uint32
 
 
 void cpu_program_interpreter(uint16_t *const maze, const uint32_t rows, const uint32_t cols,
-  uint32_t *offsets, uint32_t *programs, uint32_t program_index, program_state state, uint32_t op_lim, program_state *res)
+  uint32_t *offsets, uint32_t *programs, uint32_t program_index, program_state state, uint32_t op_lim,
+  program_state *res, const finch::program_state &goal)
 {
   using namespace std;
   
@@ -225,6 +228,8 @@ void cpu_program_interpreter(uint16_t *const maze, const uint32_t rows, const ui
       cout << "HARD ERROR. COLS EXCEEDED." << endl;
       return;
     }
+    if(state.row == goal.row && state.col == goal.col) goto end;
+    
     uint32_t *const op_loc = stack[stack_head--];
     if(!op_loc) {
       stack[stack_head = 1] = our_program;
@@ -278,7 +283,7 @@ void cpu_program_interpreter(uint16_t *const maze, const uint32_t rows, const ui
     
     ++ops_executed;
   }
-  
+end:
   res[program_index] = state;
 }
 
