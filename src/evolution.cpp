@@ -143,33 +143,7 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const std::string &heatmap
     
     cerr << ".";
     // Mutate and reproduce
-    vector<thread> breeders;
-    const static uint8_t breeder_threads = 8;
-    const static uint32_t agents_per_thread = pop.size() / breeder_threads;
-    population subpops[breeder_threads];
-    vector<double> subfits[breeder_threads];
-    population breed_res[breeder_threads];
-    for(uint8_t b = 0; b < breeder_threads; ++b)
-    {
-      const population::size_type begin = b       * agents_per_thread;
-      population::size_type end         = (b + 1) * agents_per_thread;
-      if(b + 1 == breeder_threads) end = pop.size();
-      
-      subpops[b] = population(pop.begin() + begin, pop.begin() + end);
-      subfits[b] = vector<double>(fitnesses.begin() + begin, fitnesses.begin() + end);
-    }
-    
-    for(uint8_t b = 0; b < breeder_threads; ++b)
-    {
-      breeders.emplace_back(thread([&breed_res, b, this, &subpops, &subfits] {
-        breed_res[b] = _breed->breed(subpops[b], subfits[b]);
-      }));
-    }
-    
-    for(auto &t : breeders) t.join();
-    
-    pop.clear();
-    for(auto &br : breed_res) pop.insert(pop.end(), br.begin(), br.end());
+    pop = _breed->breed(pop, fitnesses);
     
     const auto end_time = high_resolution_clock::now();
     
@@ -190,37 +164,39 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const std::string &heatmap
     heatmap_total_out.close();
   }
   
-  double best_fitness = 100000.0;
-  size_t index = 0;
-  for(size_t i = 0; i < fitnesses.size(); ++i)
+  if(pop.size())
   {
-    if(fitnesses[i] > best_fitness) continue;
-    best_fitness = fitnesses[i];
-    index = i;
+    double best_fitness = 100000.0;
+    size_t index = 0;
+    for(size_t i = 0; i < fitnesses.size(); ++i)
+    {
+      if(fitnesses[i] > best_fitness) continue;
+      best_fitness = fitnesses[i];
+      index = i;
+    }
+  
+    cout << "Best ind " << best_fitness << " (" << index << ")" << ". " << final_state.row << ", " << final_state.col
+      << " vs " << pop[index].final_state().row << ", " << pop[index].final_state().col << endl;
+  
+    vector<uint32_t> outp;
+    expression_simplifier simplifier(program_types_set);
+    simplifier.simplify(pop[index].program()).write(outp);
+    ofstream best_ind("best_ind.prog");
+    if(best_ind.is_open())
+    {
+      uint32_t size = outp.size();
+      best_ind.write(reinterpret_cast<char *>(&size), sizeof size);
+      best_ind.write(reinterpret_cast<char *>(&outp[0]), outp.size() * sizeof(uint32_t));
+      best_ind.close();
+    }
+  
+    ofstream best_ind_dot("best_ind.dot");
+    if(best_ind_dot.is_open())
+    {
+      pop[index].program().write_dot(best_ind_dot);
+      best_ind_dot.close();
+    }
   }
-  
-  cout << "Best ind " << best_fitness << " (" << index << ")" << ". " << final_state.row << ", " << final_state.col
-    << " vs " << pop[index].final_state().row << ", " << pop[index].final_state().col << endl;
-  
-  vector<uint32_t> outp;
-  expression_simplifier simplifier(program_types_set);
-  simplifier.simplify(pop[index].program()).write(outp);
-  ofstream best_ind("best_ind.prog");
-  if(best_ind.is_open())
-  {
-    uint32_t size = outp.size();
-    best_ind.write(reinterpret_cast<char *>(&size), sizeof size);
-    best_ind.write(reinterpret_cast<char *>(&outp[0]), outp.size() * sizeof(uint32_t));
-    best_ind.close();
-  }
-  
-  ofstream best_ind_dot("best_ind.dot");
-  if(best_ind_dot.is_open())
-  {
-    pop[index].program().write_dot(best_ind_dot);
-    best_ind_dot.close();
-  }
-  
   _fitness->emit_summary("final_fitness");
   
   // Report results

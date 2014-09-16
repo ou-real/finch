@@ -146,5 +146,12 @@ population speciation_breeder::breed(const population &generation, const std::ve
     ret.push_back(res);
   }
   
+  while(ret.size() < generation.size())
+  {
+    agent mutant = random_builder.grow(program_types_set, growth_tree_min, growth_tree_max);
+    mutant.set_chromosomes(vector<double> { rand_normal() * max_dist });
+    ret.push_back(mutant);
+  }
+  
   return ret;
 }
