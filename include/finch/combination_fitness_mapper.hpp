@@ -28,18 +28,21 @@ namespace finch
       std::vector<double> br = _b->map_all(generation);
       std::vector<double> r;
       
+      double a_max_fitness = 0.0;
+      double b_max_fitness = 0.0;
+      for(auto  f : ar) a_max_fitness = std::max(f, a_max_fitness);
+      for(auto  f : br) b_max_fitness = std::max(f, b_max_fitness);
+      
       if(_a->inverted_fitness())
       {
-        double max_fitness = 0.0;
-        for(auto  f : ar) max_fitness = std::max(f, max_fitness);
-        for(auto &f : ar) f = max_fitness - f;
+        for(auto &f : ar) f = a_max_fitness - f;
       }
       if(_b->inverted_fitness())
       {
-        double max_fitness = 0.0;
-        for(auto  f : br) max_fitness = std::max(f, max_fitness);
-        for(auto &f : br) f = max_fitness - f;
+        for(auto &f : br) f = b_max_fitness - f;
       }
+      for(auto &f : ar) f /= a_max_fitness;
+      for(auto &f : br) f /= b_max_fitness;
       
       auto ait = ar.begin();
       auto bit = br.begin();
