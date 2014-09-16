@@ -30,8 +30,8 @@ namespace finch
       
       double a_max_fitness = 0.0;
       double b_max_fitness = 0.0;
-      for(auto  f : ar) a_max_fitness = std::max(f, a_max_fitness);
-      for(auto  f : br) b_max_fitness = std::max(f, b_max_fitness);
+      for(auto f : ar) a_max_fitness = std::max(f, a_max_fitness);
+      for(auto f : br) b_max_fitness = std::max(f, b_max_fitness);
       
       if(_a->inverted_fitness())
       {

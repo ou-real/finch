@@ -174,6 +174,7 @@ bool kickoff(istream &in)
       b = new normal_breeder(e);
       f = new combination_fitness_mapper(exp_params["objective_weight"].asDouble(), new objective_fitness_mapper(goal_state),
         exp_params["novelty_weight"].asDouble(), new novelty_fitness_mapper(maze));
+      break;
     case speciation_method:
       b = new speciation_breeder(e, maze, goal_state.row, goal_state.col);
       f = new objective_fitness_mapper(goal_state);
