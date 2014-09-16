@@ -123,11 +123,13 @@ population speciation_breeder::breed(const population &generation, const std::ve
     matches[&a] = flattened_mates;
   }
   
-  while(ret.size() < generation.size() && !mut_gen.empty())
+  vector<const agent *> mothers;
+  for(const auto &a : mut_gen) mothers.push_back(&a);
+  random_shuffle(mothers.begin(), mothers.end());
+  
+  for(const auto &mother : mothers)
   {
-    population::size_type mi = rand() % mut_gen.size();
-    const agent &mother = mut_gen[mi];
-    const vector<const agent *> fathers = matches[&mother];
+    const vector<const agent *> fathers = matches[mother];
     if(fathers.empty()) continue;
     
     agent father = *fathers[rand() % fathers.size()];
@@ -135,18 +137,14 @@ population speciation_breeder::breed(const population &generation, const std::ve
     agent mutant  = random_builder.grow(program_types_set, growth_tree_min, growth_tree_max);
     mutant.set_chromosomes(vector<double> { rand_normal() * max_dist });
     
-    agent child   = repr.reproduce(vector<agent> { mother, father })[rand() % 2];
-    child.set_chromosomes(vector<double> { (mother.chromosomes()[0] + father.chromosomes()[0]) / 2.0 });
+    agent child   = repr.reproduce(vector<agent> { *mother, father })[rand() % 2];
+    child.set_chromosomes(vector<double> { (mother->chromosomes()[0] + father.chromosomes()[0]) / 2.0 });
     
     agent res     = repr.reproduce(vector<agent> { child, mutant })[rand() % 2];
     res.set_chromosomes(vector<double> { (child.chromosomes()[0] + mutant.chromosomes()[0]) / 2.0 });
     
     ret.push_back(res);
-    
-    // cout << "Created agent with dist " << res.chromosomes()[0] << endl;
   }
-  
-  
   
   return ret;
 }

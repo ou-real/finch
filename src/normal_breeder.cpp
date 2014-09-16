@@ -32,6 +32,10 @@ population normal_breeder::breed(const population &generation, const std::vector
   {
     const agent &mother = tournament_select(generation, fitnesses, tournament_size);
     const agent &father = tournament_select(generation, fitnesses, tournament_size);
+    if(mother.program().nonterminals() > 1000 || father.program().nonterminals() > 1000)
+    {
+      continue;
+    }
     agent mutant  = random_builder.grow(program_types_set, growth_tree_min, growth_tree_max);
     mutant.set_program(es.simplify(mutant.program()));
     const agent child   = repr.reproduce(vector<agent> { mother, father })[rand() % 2];

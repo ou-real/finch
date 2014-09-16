@@ -14,8 +14,8 @@ std::vector<agent> tree_crossover_reproducer::reproduce(const std::vector<agent>
 {
   using namespace std;
   
-  double terminalProb = 0.1;
-  double nonterminalProb = 0.9;
+  double terminalProb = 0.4;
+  double nonterminalProb = 0.6;
   const double totalProb = terminalProb + nonterminalProb;
   const uint32_t scaler = 1000;
   const uint32_t selection = rand() % static_cast<uint32_t>(totalProb * scaler);
