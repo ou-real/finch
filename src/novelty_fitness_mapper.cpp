@@ -29,6 +29,10 @@ double novelty_fitness_mapper::map(const program_state &final_state)
   return ret;
 }
 
+double novelty_fitness_mapper::shadow_map(const program_state &final_state) const
+{
+  return evaluate(final_state);
+}
 
 double novelty_fitness_mapper::evaluate(const program_state &state) const
 {
@@ -42,10 +46,9 @@ double novelty_fitness_mapper::evaluate(const program_state &state) const
     for(uint16_t col = 0; col < _history.columns(); ++col)
     {
       double sum = 0.0;
-      uint32_t num = _history.at(row, col);
-      sum += num * abs(static_cast<int32_t>(row) - static_cast<int32_t>(state.row));
-      sum += num * abs(static_cast<int32_t>(col) - static_cast<int32_t>(state.col));
-      val += sqrt(sum);
+      sum += abs(static_cast<int32_t>(row) - static_cast<int32_t>(state.row))
+          +  abs(static_cast<int32_t>(col) - static_cast<int32_t>(state.col));
+      val += sqrt(_history.at(row, col) * sum);
     }
   }
   

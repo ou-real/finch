@@ -13,6 +13,7 @@ namespace finch
     novelty_fitness_mapper(const matrix2<uint16_t> &maze);
     virtual std::vector<double> map_all(const population &generation);
     virtual double map(const program_state &final_state);
+    double shadow_map(const program_state &final_state) const;
     
     virtual bool inverted_fitness() const;
     

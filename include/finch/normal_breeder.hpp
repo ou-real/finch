@@ -8,6 +8,8 @@ namespace finch
   class normal_breeder : public breeder
   {
   public:
+    normal_breeder(const experimental_parameters &exp_params);
+    
     virtual population breed(const population &generation, const std::vector<double> &fitnesses) const;
     
   private:

@@ -3,11 +3,13 @@
 #include <finch/csv.hpp>
 #include <finch/objective_fitness_mapper.hpp>
 #include <finch/novelty_fitness_mapper.hpp>
+#include <finch/combination_fitness_mapper.hpp>
 #include <finch/speciation_fitness_mapper.hpp>
 #include <finch/normal_breeder.hpp>
 #include <finch/speciation_breeder.hpp>
 #include <finch/expression_simplifier.hpp>
 #include <finch/program_node_types.hpp>
+#include <finch/experimental_parameters.hpp>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -23,6 +25,40 @@
 
 using namespace finch;
 using namespace std;
+
+void test_novelty()
+{
+  matrix2<uint16_t> dummy(50, 50);
+  novelty_fitness_mapper f(dummy);
+  program_state p[] = {
+    program_state(north, 0, 0),
+    program_state(north, 49, 49),
+    program_state(north, 0, 0),
+  };
+  for(const auto &pa : p) cout << f.map(pa) << endl;
+  
+  double max = 0.0;
+  matrix2<uint16_t> m(dummy.rows(), dummy.columns());
+  for(uint16_t r = 0; r < dummy.rows(); ++r)
+  {
+    for(uint16_t c = 0; c < dummy.columns(); ++c)
+    {
+      max = std::max(f.shadow_map(program_state(east, r, c)), max);
+    }
+  }
+  for(uint16_t r = 0; r < dummy.rows(); ++r)
+  {
+    for(uint16_t c = 0; c < dummy.columns(); ++c)
+    {
+      m.at(r, c) = (max - f.shadow_map(program_state(east, r, c))) / max * 0xFFFF;
+    }
+  }
+  
+  ofstream mf("mf.grad");
+  if(!mf.is_open()) return;
+  serialize(mf, m);
+  mf.close();
+}
 
 bool kickoff(istream &in)
 {
@@ -61,17 +97,22 @@ bool kickoff(istream &in)
     return false;
   }
   
+  experimental_parameters e;
+  for(auto it = exp_params.begin(); it != exp_params.end(); ++it) e[it.memberName()] = it->asDouble();
+  
   enum method
   {
     unknown_method = 0,
     objective_method,
     novelty_method,
+    combo_method,
     speciation_method
   } resolved_method = unknown_method;
   
-  if     (exp_method == "objective")  resolved_method = objective_method;
-  else if(exp_method == "novelty")    resolved_method = novelty_method;
-  else if(exp_method == "speciation") resolved_method = unknown_method;
+  if     (exp_method == "objective")   resolved_method = objective_method;
+  else if(exp_method == "novelty")     resolved_method = novelty_method;
+  else if(exp_method == "combination") resolved_method = combo_method;
+  else if(exp_method == "speciation")  resolved_method = speciation_method;
   
   if(resolved_method == unknown_method)
   {
@@ -120,17 +161,22 @@ bool kickoff(istream &in)
     switch(resolved_method)
     {
     case objective_method:
-      b = new normal_breeder;
+      b = new normal_breeder(e);
       f = new objective_fitness_mapper(goal_state);
       break;
     case novelty_method:
-      b = new normal_breeder;
+      b = new normal_breeder(e);
       f = new novelty_fitness_mapper(maze);
       break;
+      case combo_method:
+      b = new normal_breeder(e);
+      f = new combination_fitness_mapper(exp_params["objective_weight"].asDouble(), new objective_fitness_mapper(goal_state),
+        exp_params["novelty_weight"].asDouble(), new novelty_fitness_mapper(maze));
     case speciation_method:
-      b = new speciation_breeder(maze, goal_state.row, goal_state.col);
+      b = new speciation_breeder(e, maze, goal_state.row, goal_state.col);
       f = new speciation_fitness_mapper;
       break;
+    default: return false;
     }
   
     stringstream evolve_log_name;
@@ -141,8 +187,8 @@ bool kickoff(istream &in)
     heatmap_prefix << name << "/" << exp_method << "-" << i;
     ofstream evolve_log(evolve_log_name.str().c_str());
     csv out;
-    evolution e(generation_size, &p, f, b);
-    e.evolve(maze, generations, heatmap_prefix.str(), &out);
+    evolution ev(e, &p, f, b);
+    ev.evolve(maze, heatmap_prefix.str(), &out);
     out.write(evolve_log);
     evolve_log.close();
   
@@ -156,7 +202,7 @@ bool kickoff(istream &in)
 int main(int argc, char *argv[])
 {
   // cin.get();
-  
+
   if(argc < 2) {
     cerr << argv[0] << " [config]" << endl;
     return 1;

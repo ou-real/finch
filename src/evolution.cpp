@@ -20,9 +20,9 @@
 
 using namespace finch;
 
-evolution::evolution(const uint32_t pop_size, const builder *const initial_population_builder,
+evolution::evolution(const experimental_parameters &exp_params, const builder *const initial_population_builder,
   fitness_mapper *const fitness, breeder *const breed)
-  : _pop_size(pop_size)
+  : _exp_params(exp_params)
   , _initial_population_builder(initial_population_builder)
   , _fitness(fitness)
   , _breed(breed)
@@ -30,7 +30,7 @@ evolution::evolution(const uint32_t pop_size, const builder *const initial_popul
   
 }
 
-void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generations, const std::string &heatmap_prefix, csv *const out)
+void evolution::evolve(const matrix2<uint16_t> &maze, const std::string &heatmap_prefix, csv *const out)
 {
   using namespace std;
   using namespace std::chrono;
@@ -50,11 +50,16 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generat
     return;
   }
   
+  const uint32_t max_generations = _exp_params["generations"];
+  const uint32_t pop_size = _exp_params["generation_size"];
+  const uint32_t growth_tree_min = _exp_params["growth_tree_min"];
+  const uint32_t growth_tree_max = _exp_params["growth_tree_max"];
   // Build initial population
-  cout << "Generating initial population (size: " << _pop_size << ")... ";
+  cout << "Generating initial population (size: " << pop_size << ")... ";
   population pop;
-  for(uint32_t i = 0; i < _pop_size; ++i) {
-    const node program = _initial_population_builder->grow(program_types_set, 1, 10);
+  
+  for(uint32_t i = 0; i < pop_size; ++i) {
+    const node program = _initial_population_builder->grow(program_types_set, growth_tree_min, growth_tree_max);
     pop.emplace_back(agent(program));
   }
   cout << "done!" << endl;
@@ -104,7 +109,7 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generat
     if(_fitness->inverted_fitness())
     {
       double max_fitness = 0.0;
-      for(auto f : fitnesses) max_fitness = max(f, max_fitness);
+      for(auto f  : fitnesses) max_fitness = max(f, max_fitness);
       for(auto &f : fitnesses) f = max_fitness - f;
     }
     
@@ -127,7 +132,7 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const uint32_t max_generat
 
     out->append_data(gen_handle, to_string(i));
     // May change in the future. Currently constant.
-    out->append_data(pop_size_handle, to_string(_pop_size));
+    out->append_data(pop_size_handle, to_string(pop_size));
     out->append_data(avg_fit_handle, to_string(avg));
     
     cerr << ".";

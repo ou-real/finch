@@ -28,8 +28,9 @@ namespace
   }
 }
 
-speciation_breeder::speciation_breeder(const matrix2<uint16_t> &maze, const uint16_t goal_row, const uint16_t goal_col)
-  : _maze(maze)
+speciation_breeder::speciation_breeder(const experimental_parameters &exp_params, const matrix2<uint16_t> &maze, const uint16_t goal_row, const uint16_t goal_col)
+  : breeder(exp_params)
+  , _maze(maze)
   , _goal_row(goal_row)
   , _goal_col(goal_col)
   , _debug_totals(_maze.rows(), _maze.columns())
@@ -55,7 +56,10 @@ population speciation_breeder::breed(const population &generation, const std::ve
   
   matrix2<uint16_t> resource_dist(_maze.rows(), _maze.columns());
   
-  const double scaling_factor = 10.0 / max_dist; // TODO: Non-const multiplier
+  experimental_parameters e = exp_params();
+  const uint32_t growth_tree_min = e["growth_tree_min"];
+  const uint32_t growth_tree_max = e["growth_tree_max"];
+  const double scaling_factor = e["resource_levels"] / max_dist;
   for(uint16_t r = 0; r < resource_dist.rows(); ++r)
   {
     for(uint16_t c = 0; c < resource_dist.columns(); ++c)
@@ -128,13 +132,13 @@ population speciation_breeder::breed(const population &generation, const std::ve
     
     agent father = *fathers[rand() % fathers.size()];
     
-    agent mutant  = random_builder.grow(program_types_set, 2, 5);
+    agent mutant  = random_builder.grow(program_types_set, growth_tree_min, growth_tree_max);
     mutant.set_chromosomes(vector<double> { rand_normal() * max_dist });
     
-    agent child   = repr.reproduce(vector<agent> { mother, father })[0];
+    agent child   = repr.reproduce(vector<agent> { mother, father })[rand() % 2];
     child.set_chromosomes(vector<double> { (mother.chromosomes()[0] + father.chromosomes()[0]) / 2.0 });
     
-    agent res     = repr.reproduce(vector<agent> { child, mutant }) [0];
+    agent res     = repr.reproduce(vector<agent> { child, mutant })[rand() % 2];
     res.set_chromosomes(vector<double> { (child.chromosomes()[0] + mutant.chromosomes()[0]) / 2.0 });
     
     ret.push_back(res);

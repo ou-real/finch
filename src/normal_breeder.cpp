@@ -9,35 +9,34 @@
 
 using namespace finch;
 
+normal_breeder::normal_breeder(const experimental_parameters &exp_params)
+  : breeder(exp_params)
+{
+  
+}
+
 population normal_breeder::breed(const population &generation, const std::vector<double> &fitnesses) const
 {
-  // Pipe looks like this
-  // 1. Tournament select two agents
-  // 2. 
   using namespace std;  
-  //
-  // double accum = 0;
-  // for(const auto &a : generation)
-  // {
-  //   accum += a.program().crowize().size();
-  // }
-  // accum /= generation.size();
-  //
-  // cout << "Average tree height: " << accum << endl;
   
   population ret;
   tree_crossover_reproducer repr;
   builder random_builder;
   expression_simplifier es(program_types_set);
+  experimental_parameters e = exp_params();
+  const uint8_t tournament_size = e["tournament_size"];
+  const uint8_t simp            = e["simplification_mod"];
+  const uint32_t growth_tree_min = e["growth_tree_min"];
+  const uint32_t growth_tree_max = e["growth_tree_max"];
   while(ret.size() < generation.size())
   {
-    const agent &mother = tournament_select(generation, fitnesses, 10);
-    const agent &father = tournament_select(generation, fitnesses, 10);
-    agent mutant  = random_builder.grow(program_types_set, 2, 5);
+    const agent &mother = tournament_select(generation, fitnesses, tournament_size);
+    const agent &father = tournament_select(generation, fitnesses, tournament_size);
+    agent mutant  = random_builder.grow(program_types_set, growth_tree_min, growth_tree_max);
     mutant.set_program(es.simplify(mutant.program()));
-    const agent child   = repr.reproduce(vector<agent> { mother, father })[0];
-    agent res     = repr.reproduce(vector<agent> { child, mutant }) [0];
-    if(rand() % 4 == 0)
+    const agent child   = repr.reproduce(vector<agent> { mother, father })[rand() % 2];
+    agent res     = repr.reproduce(vector<agent> { child, mutant })[rand() % 2];
+    if(simp && rand() % simp == 0)
     {
       res.set_program(es.simplify(res.program()));
     }
@@ -64,6 +63,6 @@ agent normal_breeder::tournament_select(const population &generation,
     {
       return get<1>(l) < get<1>(r);
     });
-    
+  
   return get<0>(candidates[0]);
 }

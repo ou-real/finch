@@ -210,7 +210,7 @@ void cpu_program_interpreter(uint16_t *const maze, const uint32_t rows, const ui
   
   stack[0] = 0;
   while(op_lim) {
-    if(stack_head == 255)
+    if(stack_head == 0xFF)
     {
       cout << "STACK OVERFLOW" << endl;
       return;
@@ -231,7 +231,6 @@ void cpu_program_interpreter(uint16_t *const maze, const uint32_t rows, const ui
       continue;
     }
     const uint32_t op = *op_loc;
-    // printf("%s\n", names[op]);
     
     switch(op) {
     // left

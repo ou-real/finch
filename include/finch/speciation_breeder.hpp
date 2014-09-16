@@ -10,7 +10,7 @@ namespace finch
   class speciation_breeder : public breeder
   {
   public:
-    speciation_breeder(const matrix2<uint16_t> &maze, const uint16_t goal_row, const uint16_t goal_col);
+    speciation_breeder(const experimental_parameters &exp_params, const matrix2<uint16_t> &maze, const uint16_t goal_row, const uint16_t goal_col);
     
     virtual population breed(const population &generation, const std::vector<double> &fitnesses) const;
     

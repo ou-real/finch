@@ -157,6 +157,46 @@ std::vector<std::vector<const node *> > node::crowize() const
   return ret;
 }
 
+uint32_t node::terminals() const
+{
+  if(_children.empty()) return 1;
+  uint32_t ret = 0;
+  for(const auto &child : _children) ret += child.terminals();
+  return ret;
+}
+
+node &node::find_terminal(const std::vector<node>::size_type i)
+{
+  std::vector<node>::size_type iter = i;
+  return _find_terminal(iter);
+}
+
+const node &node::cfind_terminal(const std::vector<node>::size_type i) const
+{
+  std::vector<node>::size_type iter = i;
+  return _cfind_terminal(iter);
+}
+
+uint32_t node::nonterminals() const
+{
+  if(_children.empty()) return 0;
+  uint32_t ret = 1;
+  for(const auto &child : _children) ret += child.nonterminals();
+  return ret;
+}
+
+node &node::find_nonterminal(const std::vector<node>::size_type i)
+{
+  std::vector<node>::size_type iter = i;
+  return _find_nonterminal(iter);
+}
+
+const node &node::cfind_nonterminal(const std::vector<node>::size_type i) const
+{
+  std::vector<node>::size_type iter = i;
+  return _cfind_nonterminal(iter);
+}
+
 node &node::operator =(const node &rhs)
 {
   _type = rhs._type;
@@ -175,13 +215,69 @@ std::ostream &node::write_dot(std::ostream &out, uint32_t &it, const uint32_t pa
   return out;
 }
 
+node &node::_find_terminal(std::vector<node>::size_type &i)
+{
+  if(_children.empty())
+  {
+    if(!i) return *this;
+    --i;
+  }
+  std::vector<node>::iterator it = _children.begin();
+  for(; it != _children.end(); ++it) {
+    node &ret = it->_find_terminal(i);
+    if(ret.is_valid()) return ret;
+  }
+  return null_node;
+}
+
+const node &node::_cfind_terminal(std::vector<node>::size_type &i) const
+{
+  if(_children.empty())
+  {
+    if(!i) return *this;
+    --i;
+  }
+  std::vector<node>::const_iterator it = _children.begin();
+  for(; it != _children.end(); ++it) {
+    const node &ret = it->_cfind_terminal(i);
+    if(ret.is_valid()) return ret;
+  }
+  return null_node;
+}
+
+node &node::_find_nonterminal(std::vector<node>::size_type &i)
+{
+  if(!i) return *this;
+  --i;
+  std::vector<node>::iterator it = _children.begin();
+  for(; it != _children.end(); ++it) {
+    if(it->_children.empty()) continue;
+    node &ret = it->_find_nonterminal(i);
+    if(ret.is_valid()) return ret;
+  }
+  return null_node;
+}
+
+const node &node::_cfind_nonterminal(std::vector<node>::size_type &i) const
+{
+  if(!i) return *this;
+  --i;
+  std::vector<node>::const_iterator it = _children.begin();
+  for(; it != _children.end(); ++it) {
+    if(it->_children.empty()) continue;
+    const node &ret = it->_cfind_nonterminal(i);
+    if(ret.is_valid()) return ret;
+  }
+  return null_node;
+}
+
 node &node::_find(std::vector<node>::size_type &i)
 {
   if(!i) return *this;
   --i;
   std::vector<node>::iterator it = _children.begin();
   for(; it != _children.end(); ++it) {
-    node &ret = (*it)._find(i);
+    node &ret = it->_find(i);
     if(ret.is_valid()) return ret;
   }
   return null_node;
@@ -193,7 +289,7 @@ const node &node::_cfind(std::vector<node>::size_type &i) const
   --i;
   std::vector<node>::const_iterator it = _children.begin();
   for(; it != _children.end(); ++it) {
-    const node &ret = (*it)._cfind(i);
+    const node &ret = it->_cfind(i);
     if(ret.is_valid()) return ret;
   }
   return null_node;

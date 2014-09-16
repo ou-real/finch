@@ -37,6 +37,16 @@ namespace finch
     std::vector<std::vector<node *> > rowize();
     std::vector<std::vector<const node *> > crowize() const;
     
+    uint32_t terminals() const;
+    
+    node &find_terminal(const std::vector<node>::size_type i);
+    const node &cfind_terminal(const std::vector<node>::size_type i) const;
+    
+    uint32_t nonterminals() const;
+    
+    node &find_nonterminal(const std::vector<node>::size_type i);
+    const node &cfind_nonterminal(const std::vector<node>::size_type i) const;
+    
     node &operator =(const node &rhs);
     
   private:
@@ -44,6 +54,12 @@ namespace finch
     
     node &_find(std::vector<node>::size_type &i);
     const node &_cfind(std::vector<node>::size_type &i) const;
+    
+    node &_find_terminal(std::vector<node>::size_type &i);
+    const node &_cfind_terminal(std::vector<node>::size_type &i) const;
+    
+    node &_find_nonterminal(std::vector<node>::size_type &i);
+    const node &_cfind_nonterminal(std::vector<node>::size_type &i) const;
     
     node_type _type;
     std::vector<node> _children;

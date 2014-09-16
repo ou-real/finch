@@ -15,7 +15,7 @@ cpu_evaluator::cpu_evaluator()
 void cpu_evaluator::evaluate(const matrix2<uint16_t> &maze, population &generation,
   const program_state &initial_state, const uint32_t op_lim) const
 {
-  
+  matrix2<uint16_t> m = maze;
   using namespace std;
   using namespace std::chrono;
   vector<uint32_t> offsets;
@@ -41,12 +41,11 @@ void cpu_evaluator::evaluate(const matrix2<uint16_t> &maze, population &generati
     uint32_t end         = (t + 1) * agents_per_thread;
     if(t + 1 == num_threads) end = generation.size();
     
-    threads.emplace_back(thread([start, end, &maze, &offsets, &programs, &initial_state, &op_lim, &res]
+    threads.emplace_back(thread([&, start, end]
       {
         for(uint32_t i = start; i < end; ++i)
         {
-          matrix2<uint16_t> tmp = maze;
-          cpu_program_interpreter(tmp.ptr(), tmp.rows(), tmp.columns(),
+          cpu_program_interpreter(m.ptr(), m.rows(), m.columns(),
             &offsets[0], &programs[0], i, initial_state, op_lim, &res[0]);
         }
       }));

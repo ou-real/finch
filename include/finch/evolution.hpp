@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "matrix2.hpp"
+#include "experimental_parameters.hpp"
 
 namespace finch
 {
@@ -14,13 +15,13 @@ namespace finch
   class evolution
   {
   public:
-    evolution(const uint32_t pop_size, const builder *const initial_population_builder,
+    evolution(const experimental_parameters &exp_params, const builder *const initial_population_builder,
       fitness_mapper *const fitness, breeder *const breed);
     
-    void evolve(const matrix2<uint16_t> &maze, const uint32_t max_generations, const std::string &heatmap_prefix, csv *const out);
+    void evolve(const matrix2<uint16_t> &maze, const std::string &heatmap_prefix, csv *const out);
     
   private:
-    uint32_t _pop_size;
+    experimental_parameters _exp_params;
     const builder *_initial_population_builder;
     fitness_mapper *_fitness;
     breeder *_breed;

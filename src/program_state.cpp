@@ -9,3 +9,10 @@ program_state::program_state()
 {
   
 }
+
+program_state::program_state(cardinal_direction dir, uint16_t row, uint16_t col)
+  : dir(dir)
+  , row(row)
+  , col(col)
+{
+}
