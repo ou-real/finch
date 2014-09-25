@@ -9,11 +9,33 @@
 #include <vector>
 #include <algorithm>
 #include <map>
+#include <unordered_map>
 
 #warning remove me
 #include <iostream>
 
 #include <tuple>
+
+template <class T>
+inline void hash_combine(std::size_t & seed, const T & v)
+{
+  std::hash<T> hasher;
+  seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+namespace std
+{
+  template<> struct hash<finch::point2<typename finch::matrix2<uint16_t>::index>>
+  {
+    inline size_t operator()(const finch::point2<typename finch::matrix2<uint16_t>::index> & v) const
+    {
+      size_t seed = 0;
+      ::hash_combine(seed, v.x());
+      ::hash_combine(seed, v.y());
+      return seed;
+    }
+  };
+}
 
 namespace finch
 {
@@ -49,7 +71,7 @@ namespace finch
     const static uint8_t max_tries = 200;
     
     deque<tuple> _regions;
-    _regions.push_back(tuple(mat_rect(mat_point(b ? 1 : 0, b ? 1 : 0), mat.columns() - (b ? 1 : 0), mat.rows() - (b ? 1 : 0)), rand() % 2));
+    _regions.push_back(tuple(mat_rect(mat_point(b ? 1 : 0, b ? 1 : 0), mat.columns() - (b ? 2 : 0), mat.rows() - (b ? 2 : 0)), rand() % 2));
     while(!_regions.empty())
     {
       const tuple t = _regions.front();
@@ -143,6 +165,8 @@ namespace finch
     return ret;
   }
   
+  
+  
   template<typename T>
   std::vector<point2<typename matrix2<T>::index> > path(const matrix2<T> &mat,
     const point2<typename matrix2<T>::index> &start,
@@ -151,23 +175,25 @@ namespace finch
     using namespace std;
     typedef point2<typename matrix2<T>::index> pt_type;
     
-    return vector<pt_type>();
-    
     deque<pt_type> queue;
     vector<pt_type> closed;
-    map<pt_type, pt_type> from;
-    map<pt_type, double> g_score;
-    map<pt_type, double> f_score;
+    unordered_map<pt_type, pt_type> from;
+    unordered_map<pt_type, double> g_score;
+    unordered_map<pt_type, double> f_score;
+    g_score[start] = 0.0;
+    f_score[start] = g_score[start] + start. template distance<double>(end);
     queue.push_back(start);
     while(!queue.empty()) {
+      sort(queue.begin(), queue.end(), [&] (const pt_type &l, const pt_type &r) {
+        return f_score[l] < f_score[r];
+      });
       const pt_type p = queue.front();
       queue.pop_front();
       
       if(p == end) {
         vector<pt_type> ret;
-        pt_type current = start;
-        while(current != end) {
-          cout << current << endl;
+        pt_type current = p;
+        while(from.find(current) != from.end()) {
           ret.push_back(current);
           current = from[current];
         }
@@ -175,16 +201,27 @@ namespace finch
       }
       
       closed.push_back(p);
-      vector<pt_type> matches = adjacent_satisfying(mat, p, static_cast<T>(0));
-      for(auto it = matches.begin(); it != matches.end(); ++it) {
-        const pt_type adj = *it;
+      vector<pt_type> matches = adjacent_satisfying<T>(mat, p, 0);
+
+      for(const auto &adj : matches) {
+        if(find(closed.begin(), closed.end(), adj) != closed.end()) continue;
         const double g = g_score[p] + p. template distance<double>(adj);
-        if(find(closed.begin(), closed.end(), adj) != closed.end() && g >= g_score[adj]) continue;
-        from[adj] = p;
-        g_score[adj] = g;
-        f_score[adj] = g_score[adj] + adj. template distance<double>(end);
-        remove(closed.begin(), closed.end(), adj);
-        queue.push_back(adj);
+        if(find(queue.begin(), queue.end(), adj) == queue.end() || g < g_score[adj])
+        {
+          from[adj] = p;
+          g_score[adj] = g;
+          f_score[adj] = g_score[adj] + adj. template distance<double>(end);
+          for(auto it = closed.begin(); it != closed.end();)
+          {
+            if(*it == adj)
+            {
+              it = closed.erase(it);
+              continue;
+            }
+            ++it;
+          }
+          if(find(queue.begin(), queue.end(), adj) == queue.end()) queue.push_back(adj);
+        }
       }
     }
     

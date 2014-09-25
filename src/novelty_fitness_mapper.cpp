@@ -82,10 +82,8 @@ bool novelty_fitness_mapper::emit_summary(const std::string &tag) const
   {
     for(uint16_t col = 0; col < _history.columns(); ++col)
     {
-      cout << _history.at(row, col) << " ";
       out.at(row, col) = _history.at(row, col) * scaling_factor;
     }
-    cout << endl;
   }
   
   ofstream file(tag + ".grad");

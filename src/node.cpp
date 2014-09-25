@@ -64,6 +64,13 @@ std::vector<node>::size_type node::num_nodes() const
   return ret;
 }
 
+std::vector<node>::size_type node::depth() const
+{
+  std::vector<node>::size_type ret = 0;
+  for(const auto &c : _children) ret = std::max(ret, c.depth());
+  return ret + 1;
+}
+
 std::vector<node_type::id_type>::size_type node::write_size() const
 {
   std::vector<node_type::id_type>::size_type ret = 1 + _children.size();

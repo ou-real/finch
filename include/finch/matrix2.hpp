@@ -45,6 +45,15 @@ namespace finch
       delete[] _data;
     }
     
+    void clear()
+    {
+      for(index row = 0; row < _rows; ++row) {
+        for(index col = 0; col < _columns; ++col) {
+          at(row, col) = T();
+        }
+      }
+    }
+    
     index rows() const
     {
       return _rows;

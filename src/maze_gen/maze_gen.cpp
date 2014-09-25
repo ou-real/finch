@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
   
     matrix2<uint16_t> maze(rows, columns);
     maze.fill_border(1U);
-    subdivide(maze, (uint16_t)0U, (uint16_t)1U, min_area, 1);
+    subdivide<uint16_t>(maze, 0U, 1U, min_area, true);
   
     point2<matrix2<uint16_t>::index> a;
     point2<matrix2<uint16_t>::index> b;
@@ -89,15 +89,19 @@ int main(int argc, char *argv[])
     
     for(; j < 1000; ++j) {
       // Start point
-      a = random_location_satisfying(maze, (uint16_t)0U);
-      maze.at(a.y(), a.x()) = 2U;
-  
+      a = random_location_satisfying<uint16_t>(maze, 0U);
+      
       // End point
-      b = random_location_satisfying(maze, (uint16_t)0U);
-      maze.at(b.y(), b.x()) = 3U;
+      b = random_location_satisfying<uint16_t>(maze, 0U);
       
       std::vector<point2<matrix2<uint16_t>::index> > p = path(maze, a, b);
-      if(p.size() >= min_dist && p.size() <= max_dist) break;
+      
+      if(p.size() >= min_dist && p.size() <= max_dist)
+      {
+        maze.at(a.y(), a.x()) = 2U;
+        maze.at(b.y(), b.x()) = 3U;
+        break;
+      }
       
       maze.at(a.y(), a.x()) = 0U;
       maze.at(b.y(), b.x()) = 0U;

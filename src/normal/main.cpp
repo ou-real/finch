@@ -6,6 +6,7 @@
 #include <finch/combination_fitness_mapper.hpp>
 #include <finch/speciation_fitness_mapper.hpp>
 #include <finch/normal_breeder.hpp>
+#include <finch/random_breeder.hpp>
 #include <finch/speciation_breeder.hpp>
 #include <finch/expression_simplifier.hpp>
 #include <finch/program_node_types.hpp>
@@ -64,6 +65,8 @@ bool kickoff(istream &in)
 {
   cin.get();
   
+  srand(time(0));
+  
   using namespace Json;
   
   Value root;
@@ -108,12 +111,14 @@ bool kickoff(istream &in)
     objective_method,
     novelty_method,
     combo_method,
+    random_method,
     speciation_method
   } resolved_method = unknown_method;
   
   if     (exp_method == "objective")   resolved_method = objective_method;
   else if(exp_method == "novelty")     resolved_method = novelty_method;
   else if(exp_method == "combination") resolved_method = combo_method;
+  else if(exp_method == "random")      resolved_method = random_method;
   else if(exp_method == "speciation")  resolved_method = speciation_method;
   
   if(resolved_method == unknown_method)
@@ -133,6 +138,8 @@ bool kickoff(istream &in)
     << "      Generation Size: " << generation_size << endl
     << "      Number of Generations: " << generations << endl
     << endl;
+  
+  uint32_t total_solved = 0;
   
   for(unsigned i = maze_first; i <= maze_last; ++i)
   {
@@ -156,6 +163,8 @@ bool kickoff(istream &in)
       return 1;
     }
     
+    cout << endl << endl << "Evolution " << i << " on " << s.str() << " (" << exp_method << ")" << endl << endl;
+    
     builder         p;
     breeder        *b = 0;
     fitness_mapper *f = 0;
@@ -170,11 +179,15 @@ bool kickoff(istream &in)
       b = new normal_breeder(e);
       f = new novelty_fitness_mapper(maze);
       break;
-      case combo_method:
+    case combo_method:
       b = new normal_breeder(e);
       f = new combination_fitness_mapper(exp_params["objective_weight"].asDouble(), new objective_fitness_mapper(goal_state),
         exp_params["novelty_weight"].asDouble(), new novelty_fitness_mapper(maze));
-      break;
+    break;
+    case random_method:
+      b = new random_breeder(e);
+      f = new objective_fitness_mapper(goal_state);
+    break;
     case speciation_method:
       b = new speciation_breeder(e, maze, goal_state.row, goal_state.col);
       f = new objective_fitness_mapper(goal_state);
@@ -185,19 +198,23 @@ bool kickoff(istream &in)
     stringstream evolve_log_name;
     time_t t = time(nullptr);
     tm tm = *localtime(&t);
-    evolve_log_name << name << "/" << "evolve_log-" << exp_method << "-" << i << ".csv";
+    evolve_log_name << name << "/" << "evolve_log-" << exp_method << "-" << generations << "-" << i << ".csv";
     stringstream heatmap_prefix;
-    heatmap_prefix << name << "/" << exp_method << "-" << i;
+    heatmap_prefix << name << "/" << exp_method << "-" << generations << "-" << i;
     ofstream evolve_log(evolve_log_name.str().c_str());
     csv out;
     evolution ev(e, &p, f, b);
-    ev.evolve(maze, heatmap_prefix.str(), &out);
+    total_solved += ev.evolve(maze, heatmap_prefix.str(), &out) ? 1 : 0;
     out.write(evolve_log);
     evolve_log.close();
   
     delete b;
     delete f;
   }
+  
+  cout << endl << endl << "SUMMARY STATISTICS:" << endl
+    << "\tTotal Evolutions: " << (maze_last - maze_first) << endl
+    << "\tTotal Solutions Found: " << total_solved << endl;
   
   return true;
 }

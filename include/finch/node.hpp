@@ -26,6 +26,7 @@ namespace finch
     const node &cfind(const std::vector<node>::size_type i) const;
     
     std::vector<node>::size_type num_nodes() const;
+    std::vector<node>::size_type depth() const;
     
     std::vector<node_type::id_type>::size_type write_size() const;
     void write(std::vector<node_type::id_type> &backing) const;

@@ -18,7 +18,7 @@ namespace finch
     evolution(const experimental_parameters &exp_params, const builder *const initial_population_builder,
       fitness_mapper *const fitness, breeder *const breed);
     
-    void evolve(const matrix2<uint16_t> &maze, const std::string &heatmap_prefix, csv *const out);
+    bool evolve(const matrix2<uint16_t> &maze, const std::string &heatmap_prefix, csv *const out);
     
   private:
     experimental_parameters _exp_params;

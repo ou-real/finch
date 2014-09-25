@@ -11,10 +11,6 @@ namespace finch
     node_crossover_reproducer();
     
     virtual std::vector<agent> reproduce(const std::vector<agent> &agents) const;
-    
-  private:
-    bool select_node_crossover_point(const uint32_t max_tries, const node &prog1, uint32_t &final_loc1,
-      const node &prog2, uint32_t &final_loc2) const;
   };
 }
 

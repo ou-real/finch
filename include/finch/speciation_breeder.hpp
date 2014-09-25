@@ -4,6 +4,7 @@
 #include "breeder.hpp"
 
 #include <finch/matrix2.hpp>
+#include <vector>
 
 namespace finch
 {
@@ -19,7 +20,9 @@ namespace finch
     mutable matrix2<uint16_t> _debug_totals;
     uint16_t _goal_row;
     uint16_t _goal_col;
-
+    matrix2<uint16_t> _precomp_resource_dist;
+    mutable matrix2<uint16_t> _resource_dist;
+    mutable matrix2<std::vector<const agent *> > _phenotypes;
   };
 }
 

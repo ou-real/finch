@@ -41,8 +41,8 @@ namespace finch
       {
         for(auto &f : br) f = b_max_fitness - f;
       }
-      for(auto &f : ar) f /= a_max_fitness;
-      for(auto &f : br) f /= b_max_fitness;
+      if(a_max_fitness > 0.0) for(auto &f : ar) f /= a_max_fitness;
+      if(b_max_fitness > 0.0) for(auto &f : br) f /= b_max_fitness;
       
       auto ait = ar.begin();
       auto bit = br.begin();

@@ -21,6 +21,14 @@
 
 using namespace finch;
 
+namespace
+{
+  inline double rand_normal(const uint32_t resolution = 10000)
+  {
+    return static_cast<double>(rand() % resolution) / static_cast<double>(resolution);
+  }
+}
+
 evolution::evolution(const experimental_parameters &exp_params, const builder *const initial_population_builder,
   fitness_mapper *const fitness, breeder *const breed)
   : _exp_params(exp_params)
@@ -31,7 +39,7 @@ evolution::evolution(const experimental_parameters &exp_params, const builder *c
   
 }
 
-void evolution::evolve(const matrix2<uint16_t> &maze, const std::string &heatmap_prefix, csv *const out)
+bool evolution::evolve(const matrix2<uint16_t> &maze, const std::string &heatmap_prefix, csv *const out)
 {
   using namespace std;
   using namespace std::chrono;
@@ -42,13 +50,13 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const std::string &heatmap
   initial_state.dir = east;
   if(!maze.index_of(2U, initial_state.row, initial_state.col)) {
     cerr << "Couldn't find start" << endl;
-    return;
+    return false;
   }
   
   program_state final_state;
   if(!maze.index_of(3U, final_state.row, final_state.col)) {
     cerr << "Couldn't find end" << endl;
-    return;
+    return false;
   }
   
   const uint32_t max_generations = _exp_params["generations"];
@@ -82,8 +90,15 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const std::string &heatmap
   const csv::column_handle soln_handle = out->append_column("Solution Found");
   
   matrix2<uint16_t> heatmap_total(maze.rows(), maze.columns());
+  const double max_dist = sqrt(maze.rows() * maze.rows() + maze.columns() * maze.columns());
+  for(auto it = pop.begin(); it != pop.end(); ++it)
+  {
+    if(it->chromosomes().size() == 1) continue;
+    it->set_chromosomes(vector<double> { rand_normal() * max_dist });
+  }
   
   vector<double> fitnesses;
+  bool soln = false;
   for(uint32_t i = 0; i < max_generations; ++i) {
     cerr << "generation " << i << ".";
     
@@ -126,16 +141,15 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const std::string &heatmap
     out->append_data(pop_size_handle, to_string(pop_size));
     out->append_data(avg_fit_handle, to_string(avg));
     
-    bool soln = false;
+    
     for(const auto &a : pop)
     {
       const program_state &i = final_state;
       const program_state &f = a.final_state();
       if(i.row == f.row && i.col == f.col)
       {
-        cerr << "solution found!" << endl;
         soln = true;
-        
+        break;
       }
     }
     out->append_data(soln_handle, to_string(soln));
@@ -164,41 +178,8 @@ void evolution::evolve(const matrix2<uint16_t> &maze, const std::string &heatmap
     heatmap_total_out.close();
   }
   
-  if(pop.size())
-  {
-    double best_fitness = 100000.0;
-    size_t index = 0;
-    for(size_t i = 0; i < fitnesses.size(); ++i)
-    {
-      if(fitnesses[i] > best_fitness) continue;
-      best_fitness = fitnesses[i];
-      index = i;
-    }
-  
-    cout << "Best ind " << best_fitness << " (" << index << ")" << ". " << final_state.row << ", " << final_state.col
-      << " vs " << pop[index].final_state().row << ", " << pop[index].final_state().col << endl;
-  
-    vector<uint32_t> outp;
-    expression_simplifier simplifier(program_types_set);
-    simplifier.simplify(pop[index].program()).write(outp);
-    ofstream best_ind("best_ind.prog");
-    if(best_ind.is_open())
-    {
-      uint32_t size = outp.size();
-      best_ind.write(reinterpret_cast<char *>(&size), sizeof size);
-      best_ind.write(reinterpret_cast<char *>(&outp[0]), outp.size() * sizeof(uint32_t));
-      best_ind.close();
-    }
-  
-    ofstream best_ind_dot("best_ind.dot");
-    if(best_ind_dot.is_open())
-    {
-      pop[index].program().write_dot(best_ind_dot);
-      best_ind_dot.close();
-    }
-  }
   _fitness->emit_summary("final_fitness");
   
   // Report results
-  
+  return soln;
 }

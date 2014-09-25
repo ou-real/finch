@@ -14,28 +14,16 @@ std::vector<agent> tree_crossover_reproducer::reproduce(const std::vector<agent>
 {
   using namespace std;
   
-  double terminalProb = 0.4;
-  double nonterminalProb = 0.6;
-  const double totalProb = terminalProb + nonterminalProb;
-  const uint32_t scaler = 1000;
-  const uint32_t selection = rand() % static_cast<uint32_t>(totalProb * scaler);
-  
-  node *n1 = 0;
-  node *n2 = 0;
-  
+  vector<agent> ret;
   auto prog1 = agents[0].program(), prog2 = agents[1].program();
-  if(selection <= terminalProb * scaler)
-  {
-    n1 = &prog1.find_terminal(rand() % prog1.terminals());
-    n2 = &prog2.find_terminal(rand() % prog2.terminals());
-  }
-  else
-  {
-    n1 = &prog1.find_nonterminal(rand() % prog1.nonterminals());
-    n2 = &prog2.find_nonterminal(rand() % prog2.nonterminals());
-  }
-  
+
+  node *const n1 = &prog1.find(rand() % prog1.num_nodes());
+  node *const n2 = &prog2.find(rand() % prog2.num_nodes());
+
   swap(*n1, *n2);
-  
-  return vector<agent> { agent(prog1), agent(prog2) };
+
+
+  if(prog1.depth() <= 17) ret.push_back(agent(prog1));
+  if(prog2.depth() <= 17) ret.push_back(agent(prog2));
+  return ret;
 }

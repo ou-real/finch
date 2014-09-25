@@ -74,12 +74,6 @@ namespace finch
       return _val[0] != rhs._val[0] || _val[1] != rhs._val[1];
     }
     
-    bool operator <(const point2<T> &rhs) const
-    {
-      if(_val[1] >= rhs._val[1]) return false;
-      return _val[0] < rhs._val[0];
-    }
-    
     template<typename R>
     R distance(const point2<T> &rhs) const
     {
