@@ -1,4 +1,4 @@
-#include <finch/speciation_breeder.hpp>
+#include <finch/resource_breeder.hpp>
 #include <finch/tree_crossover_reproducer.hpp>
 #include <finch/node_crossover_reproducer.hpp>
 #include <finch/program_node_types.hpp>
@@ -26,13 +26,11 @@ namespace
   }
   inline double rand_normal(const uint32_t resolution = 10000)
   {
-    return static_cast<double>(rand() % resolution) / static_cast<double>(resolution)
-      * static_cast<double>(rand() % resolution) / static_cast<double>(resolution);
+    return static_cast<double>(rand() % resolution) / static_cast<double>(resolution);
   }
 }
 
-speciation_breeder::speciation_breeder(const experimental_parameters &exp_params, const matrix2<uint16_t> &maze,
-    const uint16_t goal_row, const uint16_t goal_col)
+resource_breeder::resource_breeder(const experimental_parameters &exp_params, const matrix2<uint16_t> &maze, const uint16_t goal_row, const uint16_t goal_col)
   : breeder(exp_params)
   , _maze(maze)
   , _goal_row(goal_row)
@@ -40,7 +38,6 @@ speciation_breeder::speciation_breeder(const experimental_parameters &exp_params
   , _debug_totals(_maze.rows(), _maze.columns())
   , _precomp_resource_dist(_maze.rows(), _maze.columns())
   , _resource_dist(_maze.rows(), _maze.columns())
-  , _phenotypes(_maze.rows(), _maze.columns())
 {
   experimental_parameters e = exp_params;
   const double max_dist = sqrt(_maze.rows() * _maze.rows() + _maze.columns() * _maze.columns());
@@ -54,13 +51,14 @@ speciation_breeder::speciation_breeder(const experimental_parameters &exp_params
       _precomp_resource_dist.at(r, c) = (max_dist - sqrt(dr * dr + dc * dc)) * scaling_factor * 5;
     }
   }
+  std::ofstream resource_dist_file("resource.dist");
+  serialize(resource_dist_file, _precomp_resource_dist);
+  resource_dist_file.close();
 }
 
-population speciation_breeder::breed(const population &generation, const std::vector<double> &fitnesses) const
+population resource_breeder::breed(const population &generation, const std::vector<double> &fitnesses) const
 {
   using namespace std;
-  
-  if(generation.empty()) return population();
   
   population ret;
   tree_crossover_reproducer repr;
@@ -128,41 +126,6 @@ population speciation_breeder::breed(const population &generation, const std::ve
     ++it;
   }
   
-  _phenotypes.clear();
-  for(const auto &a : mut_gen) _phenotypes.at(a->final_state().row, a->final_state().col).push_back(a);
-  
-  map<const agent *, vector<const agent *> > matches;
-  for(auto ait = mut_gen.begin(); ait != mut_gen.end();)
-  {
-    const agent *const a = *ait;
-    const vector<vector<const agent *> > plausible_mates =
-      _phenotypes.find_in_range(a->final_state().row, a->final_state().col,
-        a->chromosomes()[0]);
-    
-    vector<const agent *> flattened_mates;
-    for(const auto &v : plausible_mates) flattened_mates.insert(flattened_mates.end(), v.begin(), v.end());
-    
-    for(auto it = flattened_mates.begin(); it != flattened_mates.end();)
-    {
-      if(distance((*it)->final_state().col, (*it)->final_state().row,
-        a->final_state().col, a->final_state().row) > (*it)->chromosomes()[0])
-      {
-        it = flattened_mates.erase(it);
-        continue;
-      }
-      ++it;
-    }
-    
-    if(flattened_mates.empty())
-    {
-      ait = mut_gen.erase(ait);
-      continue;
-    }
-    
-    matches[a] = flattened_mates;
-    ++ait;
-  }
-  
   const population::size_type new_size = mut_gen.size() << 1;
   
   random_shuffle(mut_gen.begin(), mut_gen.end());
@@ -171,11 +134,8 @@ population speciation_breeder::breed(const population &generation, const std::ve
     for(const auto &mother : mut_gen)
     {
       if(ret.size() >= new_size) break;
-    
-      const vector<const agent *> &fathers = matches[mother];
-      if(fathers.empty()) continue;
       
-      const agent &father = *fathers[rand() % fathers.size()];
+      const agent &father = *mut_gen[rand() % mut_gen.size()];
     
       agent mutant  = random_builder.grow(program_types_set, growth_tree_min, growth_tree_max);
       mutant.set_chromosomes(vector<double> { rand_normal() * max_dist });

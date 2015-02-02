@@ -11,10 +11,11 @@ using namespace std;
 using namespace finch;
 using namespace finch::ui;
 
-gradient_view::gradient_view(QWidget *const parent)
+gradient_view::gradient_view(QWidget *const parent, bool save)
   : QWidget(parent)
   , _ui(new Ui::gradient_view)
   , _current(0)
+  , _save(save)
 {
   _ui->setupUi(this);
   
@@ -73,6 +74,7 @@ void gradient_view::update()
   _ui->playhead->setSliderPosition(_current);
   if(_gradients.empty()) return;
   _ui->matrix->set_matrix(_gradients[_current]);
+  QPixmap::grabWidget(_ui->matrix).save(QString("grad-%1").arg(_current), "PNG");
 }
 
 void usage(const char *const path)
@@ -107,7 +109,7 @@ int main(int argc, char *argv[])
   }
   
   QApplication app(argc, argv);
-  gradient_view view;
+  gradient_view view(0, true);
   view.set_gradients(grads);
   view.show();
   view.raise();

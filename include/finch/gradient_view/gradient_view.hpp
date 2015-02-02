@@ -19,7 +19,7 @@ namespace finch
     {
       Q_OBJECT
     public:
-      gradient_view(QWidget *const parent = 0);
+      gradient_view(QWidget *const parent = 0, bool save = false);
       ~gradient_view();
       
       void set_gradients(const std::vector<matrix2<uint16_t> > &gradients);
@@ -37,6 +37,7 @@ namespace finch
       Ui::gradient_view *_ui;
       std::vector<matrix2<uint16_t> > _gradients;
       uint32_t _current;
+      bool _save;
       
       QTimer _fireman;
     };

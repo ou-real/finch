@@ -8,6 +8,9 @@
 #include <finch/normal_breeder.hpp>
 #include <finch/random_breeder.hpp>
 #include <finch/speciation_breeder.hpp>
+#include <finch/resource_breeder.hpp>
+#include <finch/choosiness_breeder.hpp>
+#include <finch/maze_block_modifier.hpp>
 #include <finch/expression_simplifier.hpp>
 #include <finch/program_node_types.hpp>
 #include <finch/experimental_parameters.hpp>
@@ -61,10 +64,33 @@ void test_novelty()
   mf.close();
 }
 
+bool load_maze(const string &name, const string &maze_prefix, const unsigned i, matrix2<uint16_t> &maze, program_state &goal_state)
+{
+  stringstream s;
+  s << name << "/" << maze_prefix << "-" << i << ".maze";
+  
+  ifstream maze_in(s.str());
+  if(!maze_in.is_open())
+  {
+    cerr << "Unable to open maze \"" << s.str() << "\". Skipping evolution." << endl;
+    return false;
+  }
+  
+  deserialize(maze_in, maze);
+  maze_in.close();
+  
+  if(!maze.index_of(3U, goal_state.row, goal_state.col)) {
+    cerr << "Couldn't find end" << endl;
+    return false;
+  }
+  
+  return true;
+}
+
+// I'm so sorry for the poor soul
+// who needs to refactor this.
 bool kickoff(istream &in)
 {
-  cin.get();
-  
   srand(time(0));
   
   using namespace Json;
@@ -89,6 +115,7 @@ bool kickoff(istream &in)
   const Value exp_params = experiment["parameters"];
   const unsigned generation_size = exp_params["generation_size"].asUInt();
   const unsigned generations     = exp_params["generations"].asUInt();
+  const bool multimaze           = exp_params["multimaze"].asBool();
   
   if(!generation_size)
   {
@@ -112,7 +139,9 @@ bool kickoff(istream &in)
     novelty_method,
     combo_method,
     random_method,
-    speciation_method
+    speciation_method,
+    resource_method,
+    choosiness_method,
   } resolved_method = unknown_method;
   
   if     (exp_method == "objective")   resolved_method = objective_method;
@@ -120,6 +149,8 @@ bool kickoff(istream &in)
   else if(exp_method == "combination") resolved_method = combo_method;
   else if(exp_method == "random")      resolved_method = random_method;
   else if(exp_method == "speciation")  resolved_method = speciation_method;
+  else if(exp_method == "resource")    resolved_method = resource_method;
+  else if(exp_method == "choosiness")  resolved_method = choosiness_method;
   
   if(resolved_method == unknown_method)
   {
@@ -135,40 +166,46 @@ bool kickoff(istream &in)
     << "  Experiment:" << endl
     << "    Method: " << exp_method << endl
     << "    Parameters: " << endl
+    << "      Multimaze: " << multimaze << endl
     << "      Generation Size: " << generation_size << endl
     << "      Number of Generations: " << generations << endl
     << endl;
   
   uint32_t total_solved = 0;
   
-  for(unsigned i = maze_first; i <= maze_last; ++i)
+  for(unsigned i = maze_first; multimaze ? (i < maze_last) : (i <= maze_last); ++i)
   {
-    stringstream s;
-    s << name << "/" << maze_prefix << "-" << i << ".maze";
-    
-    ifstream maze_in(s.str());
-    if(!maze_in.is_open())
-    {
-      cerr << "Unable to open maze \"" << s.str() << "\". Skipping evolution." << endl;
-      continue;
-    }
+    Value res = exp_params["resource_levels"];
     
     matrix2<uint16_t> maze;
-    deserialize(maze_in, maze);
-    maze_in.close();
-    
     program_state goal_state;
-    if(!maze.index_of(3U, goal_state.row, goal_state.col)) {
-      cerr << "Couldn't find end" << endl;
-      return 1;
-    }
+  
     
-    cout << endl << endl << "Evolution " << i << " on " << s.str() << " (" << exp_method << ")" << endl << endl;
+    cout << endl << endl << "Evolution " << i << " (" << exp_method << ")" << endl << endl;
     
-    builder         p;
+    builder p;
+  
+    stringstream evolve_log_name;
+    time_t t = time(nullptr);
+    tm tm = *localtime(&t);
+    int obj_print = exp_params["objective_weight"].asDouble() * 10;
+    int nov_print = exp_params["novelty_weight"].asDouble() * 10;
+    evolve_log_name << name << "-exp3/" << "evolve_log-" << exp_method << "-" << generations << "-"
+      << nov_print << obj_print << "-" << i;
+    if(!!res) evolve_log_name << "-" << res.asString();
+    evolve_log_name << ".csv";
+    stringstream heatmap_prefix;
+    heatmap_prefix << name << "-exp3/" << exp_method << "-" << generations << "-" << i;
+    if(!!res) heatmap_prefix << "-" << res.asString();
+    ofstream evolve_log(evolve_log_name.str().c_str());
+    csv out;
+    
     breeder        *b = 0;
     fitness_mapper *f = 0;
-  
+    maze_modifier  *m = multimaze ? new maze_block_modifier() : 0;
+    
+    load_maze(name, maze_prefix, i, maze, goal_state);
+    
     switch(resolved_method)
     {
     case objective_method:
@@ -181,8 +218,9 @@ bool kickoff(istream &in)
       break;
     case combo_method:
       b = new normal_breeder(e);
-      f = new combination_fitness_mapper(exp_params["objective_weight"].asDouble(), new objective_fitness_mapper(goal_state),
-        exp_params["novelty_weight"].asDouble(), new novelty_fitness_mapper(maze));
+      f = new combination_fitness_mapper(
+            exp_params["objective_weight"].asDouble(), new objective_fitness_mapper(goal_state),
+            exp_params["novelty_weight"].asDouble()  , new novelty_fitness_mapper(maze));
     break;
     case random_method:
       b = new random_breeder(e);
@@ -192,24 +230,37 @@ bool kickoff(istream &in)
       b = new speciation_breeder(e, maze, goal_state.row, goal_state.col);
       f = new objective_fitness_mapper(goal_state);
       break;
+    case resource_method:
+      b = new resource_breeder(e, maze, goal_state.row, goal_state.col);
+      f = new objective_fitness_mapper(goal_state);
+      break;
+    case choosiness_method:
+      b = new choosiness_breeder(e, maze, goal_state.row, goal_state.col);
+      f = new objective_fitness_mapper(goal_state);
+      break;
     default: return false;
     }
-  
-    stringstream evolve_log_name;
-    time_t t = time(nullptr);
-    tm tm = *localtime(&t);
-    evolve_log_name << name << "/" << "evolve_log-" << exp_method << "-" << generations << "-" << i << ".csv";
-    stringstream heatmap_prefix;
-    heatmap_prefix << name << "/" << exp_method << "-" << generations << "-" << i;
-    ofstream evolve_log(evolve_log_name.str().c_str());
-    csv out;
-    evolution ev(e, &p, f, b);
-    total_solved += ev.evolve(maze, heatmap_prefix.str(), &out) ? 1 : 0;
-    out.write(evolve_log);
-    evolve_log.close();
-  
+    
+    for(int i = 0; i < 30; ++i)
+    {
+      maze = m->modify(maze, experimental_parameters());
+      stringstream t;
+      t << "testMaze-" << i;
+      ofstream f(t.str().c_str());
+      serialize(f, maze);
+      f.close();
+    }
+    
+    
+    // evolution ev(e, &p, f, b, m);
+    // total_solved += ev.evolve(maze, heatmap_prefix.str(), &out) ? 1 : 0;
+
     delete b;
     delete f;
+    delete m;
+      
+    out.write(evolve_log);
+    evolve_log.close();
   }
   
   cout << endl << endl << "SUMMARY STATISTICS:" << endl
@@ -221,8 +272,6 @@ bool kickoff(istream &in)
 
 int main(int argc, char *argv[])
 {
-  // cin.get();
-
   if(argc < 2) {
     cerr << argv[0] << " [config]" << endl;
     return 1;
