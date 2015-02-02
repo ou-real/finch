@@ -87,6 +87,39 @@ bool load_maze(const string &name, const string &maze_prefix, const unsigned i, 
   return true;
 }
 
+static void deserialize(istream &in, uint8_t &data)
+{
+  in.read(reinterpret_cast<char *>(&data), sizeof data);
+}
+
+static void deserialize(istream &in, matrix2<uint16_t>::index &data)
+{
+  in.read(reinterpret_cast<char *>(&data), sizeof data);
+}
+
+static void deserialize(istream &in, uint32_t &data)
+{
+  in.read(reinterpret_cast<char *>(&data), sizeof data);
+}
+
+static void deserialize(istream &in, maze_block_modifier_digest::change &data)
+{
+  deserialize(in, data.nil);
+  deserialize(in, data.from_x);
+  deserialize(in, data.from_y);
+  deserialize(in, data.to_x);
+  deserialize(in, data.to_y);
+}
+
+template<typename T>
+static void deserialize(istream &in, vector<T> &data)
+{
+  uint32_t size = 0;
+  deserialize(in, size);
+  data.resize(size);
+  for(auto &t : data) deserialize(in, t);
+}
+
 // I'm so sorry for the poor soul
 // who needs to refactor this.
 bool kickoff(istream &in)
@@ -202,7 +235,26 @@ bool kickoff(istream &in)
     
     breeder        *b = 0;
     fitness_mapper *f = 0;
-    maze_modifier  *m = multimaze ? new maze_block_modifier() : 0;
+    maze_modifier  *m = 0;
+    
+    if(multimaze)
+    {
+      stringstream s;
+      s << name << "/" << maze_prefix << "-" << i << ".maze.digest";
+      ifstream digest(s.str());
+      if(!digest.is_open())
+      {
+        cout << "Failed to load digest \"" << s.str() << "\"" << endl;
+        return false;
+      }
+      
+      vector<maze_block_modifier_digest::change> changes;
+      deserialize(digest, changes);
+      
+      digest.close();
+      
+      m = new maze_block_modifier(changes);
+    }
     
     load_maze(name, maze_prefix, i, maze, goal_state);
     
@@ -241,19 +293,8 @@ bool kickoff(istream &in)
     default: return false;
     }
     
-    for(int i = 0; i < 30; ++i)
-    {
-      maze = m->modify(maze, experimental_parameters());
-      stringstream t;
-      t << "testMaze-" << i;
-      ofstream f(t.str().c_str());
-      serialize(f, maze);
-      f.close();
-    }
-    
-    
-    // evolution ev(e, &p, f, b, m);
-    // total_solved += ev.evolve(maze, heatmap_prefix.str(), &out) ? 1 : 0;
+    evolution ev(e, &p, f, b, m);
+    total_solved += ev.evolve(maze, heatmap_prefix.str(), &out) ? 1 : 0;
 
     delete b;
     delete f;

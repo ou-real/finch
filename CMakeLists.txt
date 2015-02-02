@@ -35,7 +35,7 @@ file(GLOB MAZE_RUN_SOURCES "${CMAKE_SOURCE_DIR}/src/maze_run/*")
 file(GLOB MAZE_DIGEST_GEN_SOURCES "${CMAKE_SOURCE_DIR}/src/maze_digest_gen/*")
 
 add_executable("${CMAKE_PROJECT_NAME}-maze_gen" ${MAZE_GEN_SOURCES} ${CMAKE_SOURCE_DIR}/src/jsoncpp.cpp)
-add_executable("${CMAKE_PROJECT_NAME}-maze_digest_gen" ${MAZE_DIGEST_GEN_SOURCES})
+add_executable("${CMAKE_PROJECT_NAME}-maze_digest_gen" ${MAZE_DIGEST_GEN_SOURCES} ${CMAKE_SOURCE_DIR}/src/maze_block_modifier_digest.cpp)
 if(cuda)
   cuda_add_executable("${CMAKE_PROJECT_NAME}" ${SOURCES} ${CUDA_SOURCES} ${CPU_SOURCES})
 else()
