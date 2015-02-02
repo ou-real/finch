@@ -10,7 +10,7 @@ namespace finch
   {
   public:
     
-    struct __attribute__((packed)) change
+    struct change
     {
       uint8_t nil;
       
