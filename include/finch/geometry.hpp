@@ -77,8 +77,8 @@ namespace finch
     template<typename R>
     R distance(const point2<T> &rhs) const
     {
-      const R dx = _val[0] > rhs._val[0] ? _val[0] - rhs._val[0] : _val[0] - rhs._val[0];
-      const R dy = _val[1] > rhs._val[1] ? _val[1] - rhs._val[1] : _val[1] - rhs._val[1];
+      const R dx = _val[0] > rhs._val[0] ? _val[0] - rhs._val[0] : rhs._val[0] - _val[0];
+      const R dy = _val[1] > rhs._val[1] ? _val[1] - rhs._val[1] : rhs._val[1] - _val[1];
       return sqrt(dx * dx + dy * dy);
     }
     
