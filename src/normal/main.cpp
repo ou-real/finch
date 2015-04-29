@@ -305,7 +305,7 @@ bool kickoff(istream &in)
   }
   
   cout << endl << endl << "SUMMARY STATISTICS:" << endl
-    << "\tTotal Evolutions: " << (maze_last - maze_first) << endl
+    << "\tTotal Evolutions: " << (maze_last - maze_first + 1) << endl
     << "\tTotal Solutions Found: " << total_solved << endl;
   
   return true;
