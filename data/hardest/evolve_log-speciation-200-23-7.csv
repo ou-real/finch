@@ -1,0 +1,7 @@
+Generation, Population Size, Average Generation Fitness, Generation Time (ms), Solution Found, Average Choosiness
+0, 500, 23.858388, 256, 0, 28.594052
+1, 238, 23.600835, 263, 0, 22.413822
+2, 290, 23.485949, 300, 0, 18.906279
+3, 350, 23.297337, 386, 0, 16.512330
+4, 434, 23.097095, 469, 0, 15.152183
+5, 530, 22.773665, , 1, 14.183959
